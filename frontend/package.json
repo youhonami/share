@@ -1,0 +1,9 @@
+{
+  "name": "frontend-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix ./nuxt run dev",
+    "build": "npm --prefix ./nuxt run build",
+    "preview": "npm --prefix ./nuxt run preview"
+  }
+}
