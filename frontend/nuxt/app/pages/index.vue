@@ -49,11 +49,30 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'home' })
+definePageMeta({ layout: 'home', middleware: 'auth' })
 
-const posts = ref([
-  { id: 1, userName: 'test', text: 'test message', likeCount: 1 },
-])
+type Post = {
+  id: number
+  userName: string
+  text: string
+  likeCount: number
+}
+
+const config = useRuntimeConfig()
+const posts = ref<Post[]>([])
+
+onMounted(async () => {
+  try {
+    const apiBase = config.public.apiBase
+    const data = await $fetch<Post[]>('/api/tweets', {
+      baseURL: apiBase,
+      credentials: 'include',
+    })
+    posts.value = data
+  } catch (error) {
+    console.error('ツイートの取得に失敗しました', error)
+  }
+})
 
 function handleShare(text: string) {
   posts.value = [

@@ -9,7 +9,7 @@
 
       <!-- 元投稿 -->
       <article class="py-4 px-6 flex flex-col gap-2 border-b border-gray-600">
-        <div class="flex items-center justify-between gap-2">
+        <div v-if="post" class="flex items-center justify-between gap-2">
           <span class="text-white font-medium text-sm">{{ post.userName }}</span>
           <div class="flex items-center gap-4 shrink-0">
             <span class="flex items-center gap-1 text-gray-400 text-sm">
@@ -25,7 +25,8 @@
             </NuxtLink>
           </div>
         </div>
-        <p class="text-white text-sm">{{ post.text }}</p>
+        <p v-if="post" class="text-white text-sm">{{ post.text }}</p>
+        <p v-else class="text-gray-400 text-sm">読み込み中...</p>
       </article>
 
       <!-- コメント一覧 -->
@@ -65,24 +66,47 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'home' })
+definePageMeta({ layout: 'home', middleware: 'auth' })
+
+type Post = {
+  id: number
+  userName: string
+  text: string
+  likeCount: number
+}
+
+type Comment = {
+  id: number
+  userName: string
+  text: string
+}
 
 const route = useRoute()
+const config = useRuntimeConfig()
 const tweetId = computed(() => Number(route.params.id) || 0)
 
-// TODO: API から投稿・コメント取得
-const post = ref({
-  id: tweetId.value,
-  userName: 'test',
-  text: 'test message',
-  likeCount: 1,
-})
-
-const comments = ref([
-  { id: 1, userName: 'test', text: 'test comment' },
-])
-
+const post = ref<Post | null>(null)
+const comments = ref<Comment[]>([])
 const newComment = ref('')
+
+onMounted(async () => {
+  if (!tweetId.value) return
+
+  try {
+    const apiBase = config.public.apiBase
+    const data = await $fetch<{ post: Post; comments: Comment[] }>(
+      `/api/tweets/${tweetId.value}`,
+      {
+        baseURL: apiBase,
+        credentials: 'include',
+      },
+    )
+    post.value = data.post
+    comments.value = data.comments
+  } catch (error) {
+    console.error('ツイート詳細の取得に失敗しました', error)
+  }
+})
 
 function handleShare(text: string) {
   // TODO: API で投稿
@@ -98,7 +122,7 @@ function submitComment() {
   if (!text) return
   comments.value = [
     ...comments.value,
-    { id: Date.now(), userName: 'test', text },
+    { id: Date.now(), userName: 'you', text },
   ]
   newComment.value = ''
 }
