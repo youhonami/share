@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\TweetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,4 +29,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/tweets', [TweetController::class, 'index']);
     Route::get('/tweets/{id}', [TweetController::class, 'show']);
+    Route::post('/tweets', [TweetController::class, 'store']);
+    Route::post('/tweets/{id}/comments', [CommentController::class, 'store']);
 });

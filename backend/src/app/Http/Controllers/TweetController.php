@@ -13,11 +13,8 @@ class TweetController extends Controller
      */
     public function index(Request $request)
     {
-        $user = $request->user();
-
         $tweets = Tweet::with('user')
             ->withCount('likes')
-            ->where('user_id', $user->id)
             ->latest()
             ->get();
 
@@ -36,11 +33,8 @@ class TweetController extends Controller
      */
     public function show(Request $request, int $id)
     {
-        $user = $request->user();
-
         $tweet = Tweet::with(['user', 'comments.user'])
             ->withCount('likes')
-            ->where('user_id', $user->id)
             ->findOrFail($id);
 
         return [
@@ -58,6 +52,32 @@ class TweetController extends Controller
                 ];
             })->values(),
         ];
+    }
+
+    /**
+     * 新しいツイートを作成する.
+     */
+    public function store(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'text' => ['required', 'string', 'max:500'],
+        ]);
+
+        $tweet = Tweet::create([
+            'user_id' => $user->id,
+            'text' => $validated['text'],
+        ]);
+
+        $tweet->load('user');
+
+        return response()->json([
+            'id' => $tweet->id,
+            'userName' => $tweet->user ? $tweet->user->name : '',
+            'text' => $tweet->text,
+            'likeCount' => 0,
+        ], 201);
     }
 }
 

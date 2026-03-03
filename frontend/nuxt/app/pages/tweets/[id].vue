@@ -30,20 +30,24 @@
       </article>
 
       <!-- コメント一覧 -->
-      <div class="py-4 px-6">
+      <div class="py-4 px-6 flex flex-col">
         <h2 class="text-white text-sm font-medium mb-3 text-right">コメント</h2>
-        <div class="flex flex-col gap-4 divide-y divide-gray-600">
-          <div
-            v-for="comment in comments"
-            :key="comment.id"
-            class="pt-3 first:pt-0"
-          >
-            <p class="text-white font-medium text-sm">{{ comment.userName }}</p>
-            <p class="text-white text-sm mt-1">{{ comment.text }}</p>
+
+        <!-- コメントリスト（ここだけスクロール・約10件分の高さ） -->
+        <div class="max-h-[32rem] overflow-y-auto pr-2">
+          <div class="flex flex-col gap-4 divide-y divide-gray-600">
+            <div
+              v-for="comment in comments"
+              :key="comment.id"
+              class="pt-3 first:pt-0"
+            >
+              <p class="text-white font-medium text-sm">{{ comment.userName }}</p>
+              <p class="text-white text-sm mt-1">{{ comment.text }}</p>
+            </div>
           </div>
         </div>
 
-        <!-- コメント入力 -->
+        <!-- コメント入力（常に画面内下部に表示） -->
         <div class="flex gap-3 mt-6">
           <input
             v-model="newComment"
@@ -89,6 +93,19 @@ const post = ref<Post | null>(null)
 const comments = ref<Comment[]>([])
 const newComment = ref('')
 
+function getXsrfToken(): string | null {
+  if (process.client) {
+    const name = 'XSRF-TOKEN='
+    const decodedCookie = decodeURIComponent(document.cookie ?? '')
+    const parts = decodedCookie.split('; ')
+    const cookie = parts.find((c) => c.startsWith(name))
+    if (cookie) {
+      return cookie.substring(name.length)
+    }
+  }
+  return null
+}
+
 onMounted(async () => {
   if (!tweetId.value) return
 
@@ -109,8 +126,36 @@ onMounted(async () => {
 })
 
 function handleShare(text: string) {
-  // TODO: API で投稿
-  console.log('Share:', text)
+  // ホームと同様に新規ツイート投稿だけ行う（画面の再取得はホームで実施）
+  const apiBase = config.public.apiBase
+
+  // 必要であれば CSRF Cookie を取得
+  const ensurePost = async () => {
+    if (!getXsrfToken()) {
+      await $fetch('/sanctum/csrf-cookie', {
+        baseURL: apiBase,
+        credentials: 'include',
+      })
+    }
+
+    const xsrfToken = getXsrfToken()
+
+    await $fetch('/api/tweets', {
+      baseURL: apiBase,
+      method: 'POST',
+      credentials: 'include',
+      headers: xsrfToken
+        ? {
+            'X-XSRF-TOKEN': xsrfToken,
+          }
+        : undefined,
+      body: { text },
+    })
+  }
+
+  ensurePost().catch((error) => {
+    console.error('ツイートの投稿に失敗しました', error)
+  })
 }
 
 function handleLogout() {
@@ -120,10 +165,39 @@ function handleLogout() {
 function submitComment() {
   const text = newComment.value.trim()
   if (!text) return
-  comments.value = [
-    ...comments.value,
-    { id: Date.now(), userName: 'you', text },
-  ]
-  newComment.value = ''
+  const apiBase = config.public.apiBase
+
+  const ensureComment = async () => {
+    if (!getXsrfToken()) {
+      await $fetch('/sanctum/csrf-cookie', {
+        baseURL: apiBase,
+        credentials: 'include',
+      })
+    }
+
+    const xsrfToken = getXsrfToken()
+
+    const newItem = await $fetch<Comment>(
+      `/api/tweets/${tweetId.value}/comments`,
+      {
+        baseURL: apiBase,
+        method: 'POST',
+        credentials: 'include',
+        headers: xsrfToken
+          ? {
+              'X-XSRF-TOKEN': xsrfToken,
+            }
+          : undefined,
+        body: { text },
+      },
+    )
+
+    comments.value = [...comments.value, newItem]
+    newComment.value = ''
+  }
+
+  ensureComment().catch((error) => {
+    console.error('コメントの投稿に失敗しました', error)
+  })
 }
 </script>

@@ -3,7 +3,7 @@
     <Sidebar @share="handleShare" @logout="handleLogout" />
 
     <!-- メイン（タイムライン） -->
-    <main class="flex-1 min-w-0 flex flex-col">
+    <main class="flex-1 min-w-0 flex flex-col overflow-y-auto">
       <h1 class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600">
         ホーム
       </h1>
@@ -61,7 +61,20 @@ type Post = {
 const config = useRuntimeConfig()
 const posts = ref<Post[]>([])
 
-onMounted(async () => {
+function getXsrfToken(): string | null {
+  if (process.client) {
+    const name = 'XSRF-TOKEN='
+    const decodedCookie = decodeURIComponent(document.cookie ?? '')
+    const parts = decodedCookie.split('; ')
+    const cookie = parts.find((c) => c.startsWith(name))
+    if (cookie) {
+      return cookie.substring(name.length)
+    }
+  }
+  return null
+}
+
+async function fetchTweets() {
   try {
     const apiBase = config.public.apiBase
     const data = await $fetch<Post[]>('/api/tweets', {
@@ -72,13 +85,39 @@ onMounted(async () => {
   } catch (error) {
     console.error('ツイートの取得に失敗しました', error)
   }
-})
+}
 
-function handleShare(text: string) {
-  posts.value = [
-    { id: Date.now(), userName: 'test', text, likeCount: 0 },
-    ...posts.value,
-  ]
+onMounted(fetchTweets)
+
+async function handleShare(text: string) {
+  try {
+    const apiBase = config.public.apiBase
+
+    // 必要であれば CSRF Cookie を取得
+    if (!getXsrfToken()) {
+      await $fetch('/sanctum/csrf-cookie', {
+        baseURL: apiBase,
+        credentials: 'include',
+      })
+    }
+
+    const xsrfToken = getXsrfToken()
+    const newPost = await $fetch<Post>('/api/tweets', {
+      baseURL: apiBase,
+      method: 'POST',
+      credentials: 'include',
+      headers: xsrfToken
+        ? {
+            'X-XSRF-TOKEN': xsrfToken,
+          }
+        : undefined,
+      body: { text },
+    })
+
+    posts.value = [newPost, ...posts.value]
+  } catch (error) {
+    console.error('ツイートの投稿に失敗しました', error)
+  }
 }
 
 function handleDelete(id: number) {
