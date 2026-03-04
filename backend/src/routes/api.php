@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\LikeController;
 use App\Http\Controllers\TweetController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,4 +33,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tweets', [TweetController::class, 'store']);
     Route::delete('/tweets/{id}', [TweetController::class, 'destroy']);
     Route::post('/tweets/{id}/comments', [CommentController::class, 'store']);
+    Route::post('/tweets/{id}/like', [LikeController::class, 'store']);
+    Route::delete('/tweets/{id}/like', [LikeController::class, 'destroy']);
 });

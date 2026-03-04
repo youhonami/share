@@ -1,14 +1,20 @@
 <template>
   <article class="py-4 px-6 flex flex-col gap-2 border-b border-gray-600">
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2">
-        <span class="text-white font-medium text-sm">{{ userName }}</span>
-        <span class="text-xs text-gray-400">{{ createdAt }}</span>
-      </div>
-      <div class="flex items-center gap-4 shrink-0">
+  <div class="flex flex-col gap-2">
+    <div class="flex items-center gap-2">
+      <span class="text-white font-medium text-sm">{{ userName }}</span>
+      <span class="text-xs text-gray-400">{{ createdAt }}</span>
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
         <button
           type="button"
-          class="flex items-center gap-1 text-gray-400 hover:text-white text-sm"
+          class="flex items-center gap-1 text-sm"
+          :class="
+            likedByMe
+              ? 'text-pink-500 hover:text-pink-400'
+              : 'text-gray-400 hover:text-white'
+          "
+          @click="$emit('toggle-like')"
         >
           <img src="/icons/heart.png" alt="いいね" class="w-4 h-4" />
           <span>{{ likeCount }}</span>
@@ -56,6 +62,7 @@ const props = defineProps<{
   text: string
   likeCount: number
   createdAt: string
+  likedByMe: boolean
   showDelete?: boolean
   showDetail?: boolean
   showClose?: boolean
@@ -64,6 +71,7 @@ const props = defineProps<{
 
 defineEmits<{
   delete: []
+  'toggle-like': []
 }>()
 </script>
 

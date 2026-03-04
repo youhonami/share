@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Like;
 use App\Models\Tweet;
 use Illuminate\Http\Request;
 
@@ -13,18 +14,25 @@ class TweetController extends Controller
      */
     public function index(Request $request)
     {
+        $user = $request->user();
+
         $tweets = Tweet::with('user')
             ->withCount('likes')
             ->latest()
             ->get();
 
-        return $tweets->map(function (Tweet $tweet) {
+        $likedTweetIds = Like::where('user_id', $user->id)
+            ->pluck('tweet_id')
+            ->all();
+
+        return $tweets->map(function (Tweet $tweet) use ($likedTweetIds) {
             return [
                 'id' => $tweet->id,
                 'userName' => $tweet->user ? $tweet->user->name : '',
                 'text' => $tweet->text,
                 'likeCount' => $tweet->likes_count,
                 'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
+                'likedByMe' => in_array($tweet->id, $likedTweetIds, true),
             ];
         });
     }
@@ -34,9 +42,15 @@ class TweetController extends Controller
      */
     public function show(Request $request, int $id)
     {
+        $user = $request->user();
+
         $tweet = Tweet::with('user')
             ->withCount('likes')
             ->findOrFail($id);
+
+        $likedByMe = Like::where('tweet_id', $tweet->id)
+            ->where('user_id', $user->id)
+            ->exists();
 
         // コメントは新しい順で取得
         $comments = $tweet->comments()
@@ -51,6 +65,7 @@ class TweetController extends Controller
                 'text' => $tweet->text,
                 'likeCount' => $tweet->likes_count,
                 'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
+                'likedByMe' => $likedByMe,
             ],
             'comments' => $comments->map(function ($comment) {
                 return [
@@ -87,6 +102,7 @@ class TweetController extends Controller
             'text' => $tweet->text,
             'likeCount' => 0,
             'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
+            'likedByMe' => false,
         ], 201);
     }
 

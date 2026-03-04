@@ -17,10 +17,12 @@
           :text="post.text"
           :like-count="post.likeCount"
           :created-at="post.createdAt"
+          :liked-by-me="post.likedByMe"
           :show-delete="true"
           :show-detail="true"
           :detail-to="`/tweets/${post.id}`"
           @delete="handleDelete(post.id)"
+          @toggle-like="handleToggleLike(post.id)"
         />
       </div>
     </main>
@@ -36,6 +38,7 @@ type Post = {
   text: string
   likeCount: number
   createdAt: string
+  likedByMe: boolean
 }
 
 const config = useRuntimeConfig()
@@ -127,6 +130,45 @@ async function handleDelete(id: number) {
     posts.value = posts.value.filter((p) => p.id !== id)
   } catch (error) {
     console.error('ツイートの削除に失敗しました', error)
+  }
+}
+
+async function handleToggleLike(id: number) {
+  try {
+    const apiBase = config.public.apiBase
+
+    if (!getXsrfToken()) {
+      await $fetch('/sanctum/csrf-cookie', {
+        baseURL: apiBase,
+        credentials: 'include',
+      })
+    }
+
+    const xsrfToken = getXsrfToken()
+
+    const target = posts.value.find((p) => p.id === id)
+    if (!target) return
+
+    const method = target.likedByMe ? 'DELETE' : 'POST'
+
+    const result = await $fetch<{ likeCount: number; likedByMe: boolean }>(
+      `/api/tweets/${id}/like`,
+      {
+        baseURL: apiBase,
+        method,
+        credentials: 'include',
+        headers: xsrfToken
+          ? {
+              'X-XSRF-TOKEN': xsrfToken,
+            }
+          : undefined,
+      },
+    )
+
+    target.likeCount = result.likeCount
+    target.likedByMe = result.likedByMe
+  } catch (error) {
+    console.error('いいねの更新に失敗しました', error)
   }
 }
 

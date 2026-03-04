@@ -18,8 +18,10 @@
           :text="post.text"
           :like-count="post.likeCount"
           :created-at="post.createdAt"
+          :liked-by-me="post.likedByMe"
           :show-delete="true"
           @delete="handleDeleteTweet"
+          @toggle-like="handleToggleLikePost"
         />
         <p v-else class="text-gray-400 text-sm px-6 py-4">読み込み中...</p>
       </div>
@@ -80,6 +82,7 @@ type Post = {
   text: string;
   likeCount: number;
   createdAt: string;
+  likedByMe: boolean;
 };
 
 type Comment = {
@@ -235,5 +238,43 @@ function submitComment() {
   ensureComment().catch((error) => {
     console.error("コメントの投稿に失敗しました", error);
   });
+}
+
+async function handleToggleLikePost() {
+  if (!post.value) return;
+
+  try {
+    const apiBase = config.public.apiBase;
+
+    if (!getXsrfToken()) {
+      await $fetch("/sanctum/csrf-cookie", {
+        baseURL: apiBase,
+        credentials: "include",
+      });
+    }
+
+    const xsrfToken = getXsrfToken();
+
+    const method = post.value.likedByMe ? "DELETE" : "POST";
+
+    const result = await $fetch<{ likeCount: number; likedByMe: boolean }>(
+      `/api/tweets/${tweetId.value}/like`,
+      {
+        baseURL: apiBase,
+        method,
+        credentials: "include",
+        headers: xsrfToken
+          ? {
+              "X-XSRF-TOKEN": xsrfToken,
+            }
+          : undefined,
+      },
+    );
+
+    post.value.likeCount = result.likeCount;
+    post.value.likedByMe = result.likedByMe;
+  } catch (error) {
+    console.error("いいねの更新に失敗しました", error);
+  }
 }
 </script>
