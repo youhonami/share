@@ -9,40 +9,19 @@
       </h1>
 
       <div class="flex flex-col divide-y divide-gray-600">
-        <article
+        <PostItem
           v-for="post in posts"
           :key="post.id"
-          class="py-4 px-6 flex flex-col gap-2"
-        >
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-white font-medium text-sm">{{ post.userName }}</span>
-            <div class="flex items-center gap-4 shrink-0">
-              <button
-                type="button"
-                class="flex items-center gap-1 text-gray-400 hover:text-white text-sm"
-              >
-                <img src="/icons/heart.png" alt="いいね" class="w-4 h-4" />
-                <span>{{ post.likeCount }}</span>
-              </button>
-              <button
-                type="button"
-                class="p-1 text-gray-400 hover:text-white"
-                aria-label="削除"
-                @click="handleDelete(post.id)"
-              >
-                <img src="/icons/cross.png" alt="" class="w-4 h-4" />
-              </button>
-              <NuxtLink
-                :to="`/tweets/${post.id}`"
-                class="p-1 text-gray-400 hover:text-white inline-block"
-                aria-label="コメント"
-              >
-                <img src="/icons/detail.png" alt="" class="w-4 h-4" />
-              </NuxtLink>
-            </div>
-          </div>
-          <p class="text-white text-sm">{{ post.text }}</p>
-        </article>
+          :id="post.id"
+          :user-name="post.userName"
+          :text="post.text"
+          :like-count="post.likeCount"
+          :created-at="post.createdAt"
+          :show-delete="true"
+          :show-detail="true"
+          :detail-to="`/tweets/${post.id}`"
+          @delete="handleDelete(post.id)"
+        />
       </div>
     </main>
   </div>
@@ -56,6 +35,7 @@ type Post = {
   userName: string
   text: string
   likeCount: number
+  createdAt: string
 }
 
 const config = useRuntimeConfig()
@@ -120,8 +100,34 @@ async function handleShare(text: string) {
   }
 }
 
-function handleDelete(id: number) {
-  posts.value = posts.value.filter((p) => p.id !== id)
+async function handleDelete(id: number) {
+  try {
+    const apiBase = config.public.apiBase
+
+    if (!getXsrfToken()) {
+      await $fetch('/sanctum/csrf-cookie', {
+        baseURL: apiBase,
+        credentials: 'include',
+      })
+    }
+
+    const xsrfToken = getXsrfToken()
+
+    await $fetch(`/api/tweets/${id}`, {
+      baseURL: apiBase,
+      method: 'DELETE',
+      credentials: 'include',
+      headers: xsrfToken
+        ? {
+            'X-XSRF-TOKEN': xsrfToken,
+          }
+        : undefined,
+    })
+
+    posts.value = posts.value.filter((p) => p.id !== id)
+  } catch (error) {
+    console.error('ツイートの削除に失敗しました', error)
+  }
 }
 
 function handleLogout() {

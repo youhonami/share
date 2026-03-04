@@ -24,6 +24,7 @@ class TweetController extends Controller
                 'userName' => $tweet->user ? $tweet->user->name : '',
                 'text' => $tweet->text,
                 'likeCount' => $tweet->likes_count,
+                'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
             ];
         });
     }
@@ -33,9 +34,15 @@ class TweetController extends Controller
      */
     public function show(Request $request, int $id)
     {
-        $tweet = Tweet::with(['user', 'comments.user'])
+        $tweet = Tweet::with('user')
             ->withCount('likes')
             ->findOrFail($id);
+
+        // コメントは新しい順で取得
+        $comments = $tweet->comments()
+            ->with('user')
+            ->latest()
+            ->get();
 
         return [
             'post' => [
@@ -43,12 +50,14 @@ class TweetController extends Controller
                 'userName' => $tweet->user ? $tweet->user->name : '',
                 'text' => $tweet->text,
                 'likeCount' => $tweet->likes_count,
+                'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
             ],
-            'comments' => $tweet->comments->map(function ($comment) {
+            'comments' => $comments->map(function ($comment) {
                 return [
                     'id' => $comment->id,
                     'userName' => $comment->user ? $comment->user->name : '',
                     'text' => $comment->text,
+                    'createdAt' => $comment->created_at?->format('Y/m/d H:i'),
                 ];
             })->values(),
         ];
@@ -77,7 +86,25 @@ class TweetController extends Controller
             'userName' => $tweet->user ? $tweet->user->name : '',
             'text' => $tweet->text,
             'likeCount' => 0,
+            'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
         ], 201);
+    }
+
+    /**
+     * ログインユーザーのツイートを削除する.
+     * 関連するコメント・いいねは外部キーの onDelete('cascade') で同時に削除される.
+     */
+    public function destroy(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        $tweet = Tweet::where('id', $id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $tweet->delete();
+
+        return response()->noContent();
     }
 }
 

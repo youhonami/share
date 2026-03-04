@@ -3,35 +3,30 @@
     <Sidebar @share="handleShare" @logout="handleLogout" />
 
     <main class="flex-1 min-w-0 flex flex-col">
-      <h1 class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600">
+      <h1
+        class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600"
+      >
         コメント
       </h1>
 
       <!-- 元投稿 -->
-      <article class="py-4 px-6 flex flex-col gap-2 border-b border-gray-600">
-        <div v-if="post" class="flex items-center justify-between gap-2">
-          <span class="text-white font-medium text-sm">{{ post.userName }}</span>
-          <div class="flex items-center gap-4 shrink-0">
-            <span class="flex items-center gap-1 text-gray-400 text-sm">
-              <img src="/icons/heart.png" alt="いいね" class="w-4 h-4" />
-              {{ post.likeCount }}
-            </span>
-            <NuxtLink
-              to="/"
-              class="p-1 text-gray-400 hover:text-white"
-              aria-label="閉じる"
-            >
-              <img src="/icons/cross.png" alt="" class="w-4 h-4" />
-            </NuxtLink>
-          </div>
-        </div>
-        <p v-if="post" class="text-white text-sm">{{ post.text }}</p>
-        <p v-else class="text-gray-400 text-sm">読み込み中...</p>
-      </article>
+      <div class="border-b border-gray-600">
+        <PostItem
+          v-if="post"
+          :id="post.id"
+          :user-name="post.userName"
+          :text="post.text"
+          :like-count="post.likeCount"
+          :created-at="post.createdAt"
+          :show-delete="true"
+          @delete="handleDeleteTweet"
+        />
+        <p v-else class="text-gray-400 text-sm px-6 py-4">読み込み中...</p>
+      </div>
 
       <!-- コメント一覧 -->
       <div class="py-4 px-6 flex flex-col">
-        <h2 class="text-white text-sm font-medium mb-3 text-right">コメント</h2>
+        <h2 class="text-white text-sm font-medium mb-3 text-center">コメント</h2>
 
         <!-- コメントリスト（ここだけスクロール・約10件分の高さ） -->
         <div class="max-h-[32rem] overflow-y-auto pr-2">
@@ -41,7 +36,14 @@
               :key="comment.id"
               class="pt-3 first:pt-0"
             >
-              <p class="text-white font-medium text-sm">{{ comment.userName }}</p>
+              <div class="flex items-center gap-2">
+                <p class="text-white font-medium text-sm">
+                  {{ comment.userName }}
+                </p>
+                <p class="text-xs text-gray-400">
+                  {{ comment.createdAt }}
+                </p>
+              </div>
               <p class="text-white text-sm mt-1">{{ comment.text }}</p>
             </div>
           </div>
@@ -55,7 +57,7 @@
             placeholder="コメントを入力..."
             class="flex-1 py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
             @keydown.enter.prevent="submitComment"
-          >
+          />
           <button
             type="button"
             class="shrink-0 py-3 px-6 text-sm font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -70,134 +72,168 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'home', middleware: 'auth' })
+definePageMeta({ layout: "home", middleware: "auth" });
 
 type Post = {
-  id: number
-  userName: string
-  text: string
-  likeCount: number
-}
+  id: number;
+  userName: string;
+  text: string;
+  likeCount: number;
+  createdAt: string;
+};
 
 type Comment = {
-  id: number
-  userName: string
-  text: string
-}
+  id: number;
+  userName: string;
+  text: string;
+  createdAt: string;
+};
 
-const route = useRoute()
-const config = useRuntimeConfig()
-const tweetId = computed(() => Number(route.params.id) || 0)
+const route = useRoute();
+const config = useRuntimeConfig();
+const tweetId = computed(() => Number(route.params.id) || 0);
 
-const post = ref<Post | null>(null)
-const comments = ref<Comment[]>([])
-const newComment = ref('')
+const post = ref<Post | null>(null);
+const comments = ref<Comment[]>([]);
+const newComment = ref("");
 
 function getXsrfToken(): string | null {
   if (process.client) {
-    const name = 'XSRF-TOKEN='
-    const decodedCookie = decodeURIComponent(document.cookie ?? '')
-    const parts = decodedCookie.split('; ')
-    const cookie = parts.find((c) => c.startsWith(name))
+    const name = "XSRF-TOKEN=";
+    const decodedCookie = decodeURIComponent(document.cookie ?? "");
+    const parts = decodedCookie.split("; ");
+    const cookie = parts.find((c) => c.startsWith(name));
     if (cookie) {
-      return cookie.substring(name.length)
+      return cookie.substring(name.length);
     }
   }
-  return null
+  return null;
 }
 
 onMounted(async () => {
-  if (!tweetId.value) return
+  if (!tweetId.value) return;
 
   try {
-    const apiBase = config.public.apiBase
+    const apiBase = config.public.apiBase;
     const data = await $fetch<{ post: Post; comments: Comment[] }>(
       `/api/tweets/${tweetId.value}`,
       {
         baseURL: apiBase,
-        credentials: 'include',
+        credentials: "include",
       },
-    )
-    post.value = data.post
-    comments.value = data.comments
+    );
+    post.value = data.post;
+    comments.value = data.comments;
   } catch (error) {
-    console.error('ツイート詳細の取得に失敗しました', error)
+    console.error("ツイート詳細の取得に失敗しました", error);
   }
-})
+});
 
 function handleShare(text: string) {
   // ホームと同様に新規ツイート投稿だけ行う（画面の再取得はホームで実施）
-  const apiBase = config.public.apiBase
+  const apiBase = config.public.apiBase;
 
   // 必要であれば CSRF Cookie を取得
   const ensurePost = async () => {
     if (!getXsrfToken()) {
-      await $fetch('/sanctum/csrf-cookie', {
+      await $fetch("/sanctum/csrf-cookie", {
         baseURL: apiBase,
-        credentials: 'include',
-      })
+        credentials: "include",
+      });
     }
 
-    const xsrfToken = getXsrfToken()
+    const xsrfToken = getXsrfToken();
 
-    await $fetch('/api/tweets', {
+    await $fetch("/api/tweets", {
       baseURL: apiBase,
-      method: 'POST',
-      credentials: 'include',
+      method: "POST",
+      credentials: "include",
       headers: xsrfToken
         ? {
-            'X-XSRF-TOKEN': xsrfToken,
+            "X-XSRF-TOKEN": xsrfToken,
           }
         : undefined,
       body: { text },
-    })
-  }
+    });
+  };
 
   ensurePost().catch((error) => {
-    console.error('ツイートの投稿に失敗しました', error)
-  })
+    console.error("ツイートの投稿に失敗しました", error);
+  });
+}
+
+async function handleDeleteTweet() {
+  if (!tweetId.value) return;
+
+  try {
+    const apiBase = config.public.apiBase;
+
+    if (!getXsrfToken()) {
+      await $fetch("/sanctum/csrf-cookie", {
+        baseURL: apiBase,
+        credentials: "include",
+      });
+    }
+
+    const xsrfToken = getXsrfToken();
+
+    await $fetch(`/api/tweets/${tweetId.value}`, {
+      baseURL: apiBase,
+      method: "DELETE",
+      credentials: "include",
+      headers: xsrfToken
+        ? {
+            "X-XSRF-TOKEN": xsrfToken,
+          }
+        : undefined,
+    });
+
+    await navigateTo("/");
+  } catch (error) {
+    console.error("ツイートの削除に失敗しました", error);
+  }
 }
 
 function handleLogout() {
-  navigateTo('/login')
+  navigateTo("/login");
 }
 
 function submitComment() {
-  const text = newComment.value.trim()
-  if (!text) return
-  const apiBase = config.public.apiBase
+  const text = newComment.value.trim();
+  if (!text) return;
+  const apiBase = config.public.apiBase;
 
   const ensureComment = async () => {
     if (!getXsrfToken()) {
-      await $fetch('/sanctum/csrf-cookie', {
+      await $fetch("/sanctum/csrf-cookie", {
         baseURL: apiBase,
-        credentials: 'include',
-      })
+        credentials: "include",
+      });
     }
 
-    const xsrfToken = getXsrfToken()
+    const xsrfToken = getXsrfToken();
 
     const newItem = await $fetch<Comment>(
       `/api/tweets/${tweetId.value}/comments`,
       {
         baseURL: apiBase,
-        method: 'POST',
-        credentials: 'include',
+        method: "POST",
+        credentials: "include",
         headers: xsrfToken
           ? {
-              'X-XSRF-TOKEN': xsrfToken,
+              "X-XSRF-TOKEN": xsrfToken,
             }
           : undefined,
         body: { text },
       },
-    )
+    );
 
-    comments.value = [...comments.value, newItem]
-    newComment.value = ''
-  }
+    comments.value = [newItem, ...comments.value];
+    newComment.value = "";
+  };
 
   ensureComment().catch((error) => {
-    console.error('コメントの投稿に失敗しました', error)
-  })
+    console.error("コメントの投稿に失敗しました", error);
+  });
 }
 </script>

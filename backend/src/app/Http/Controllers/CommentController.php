@@ -34,6 +34,7 @@ class CommentController extends Controller
             'id' => $comment->id,
             'userName' => $comment->user ? $comment->user->name : '',
             'text' => $comment->text,
+            'createdAt' => $comment->created_at?->format('Y/m/d H:i'),
         ], 201);
     }
 }
