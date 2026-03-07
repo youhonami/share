@@ -42,6 +42,13 @@
         <p v-if="errorMessage" class="text-sm text-red-600 text-center">
           {{ errorMessage }}
         </p>
+
+        <NuxtLink
+          to="/withdraw"
+          class="block text-center text-sm text-gray-500 hover:text-gray-700 mt-2"
+        >
+          退会する方はこちら
+        </NuxtLink>
       </form>
     </div>
   </div>

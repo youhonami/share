@@ -15,11 +15,12 @@ Twitter 風 SNS アプリ
 - つぶやきの削除
 - コメントの投稿(つぶやきに対してのコメント)
 - いいね機能
+- 退会機能（ユーザーの削除機能）
 
 ## 使用技術(実行環境)
 
-Laravel8(PHP)
-nuxt.js(JavaScript)
+- Laravel8(PHP)
+- nuxt.js(JavaScript)
 
 ### 認証まわりの技術スタック
 
