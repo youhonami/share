@@ -60,6 +60,40 @@ class AuthController extends Controller
     }
 
     /**
+     * Handle account withdrawal.
+     */
+    public function withdraw(Request $request)
+    {
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
+        ]);
+
+        $user = User::where('email', $credentials['email'])->first();
+
+        if (! $user || ! Hash::check($credentials['password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['メールアドレスまたはパスワードが正しくありません。'],
+            ]);
+        }
+
+        // ログイン中ならセッションを破棄
+        if (Auth::check() && Auth::id() === $user->id) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        // トークンを削除してからユーザー削除（投稿・コメント・いいねはDBのCASCADEで削除される）
+        $user->tokens()->delete();
+        $user->delete();
+
+        return response()->json([
+            'message' => '退会が完了しました。',
+        ]);
+    }
+
+    /**
      * Destroy an authenticated session.
      */
     public function logout(Request $request)
