@@ -19,8 +19,12 @@ Twitter 風 SNS アプリ
 
 ## 使用技術(実行環境)
 
-- Laravel8(PHP)
-- nuxt.js(JavaScript)
+- Laravel 8.83.29 (PHP 8.5.3)
+- Nuxt 4.3.1 (Vue 3.5.28)
+- Node.js 24.4.1
+- MySQL 8.0.26
+- Nginx 1.21.1
+- Docker 28.2.2
 
 ### 認証まわりの技術スタック
 

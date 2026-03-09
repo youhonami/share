@@ -1,0 +1,27 @@
+# Laravel (backend/src)
+/backend/src/vendor/
+/backend/src/storage/
+/backend/src/.env
+/backend/src/.env.backup
+/backend/src/.phpunit.result.cache
+/backend/src/node_modules/
+
+# Nuxt (frontend/nuxt)
+/frontend/nuxt/node_modules/
+/frontend/nuxt/.nuxt/
+/frontend/nuxt/.output/
+/frontend/nuxt/.cache/
+/frontend/nuxt/.nitro/
+/frontend/nuxt/dist/
+/frontend/nuxt/.env
+/frontend/nuxt/.env.*
+!/frontend/nuxt/.env.example
+
+# Docker MySQL data
+/docker/mysql/data/
+
+# Editor / OS
+/.idea/
+/.vscode/
+.DS_Store
+
