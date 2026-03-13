@@ -18,6 +18,18 @@
         <span class="text-sm font-medium">ホーム</span>
       </NuxtLink>
       <NuxtLink
+        to="/settings"
+        class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
+        :class="{ 'bg-gray-600/50': route.path === '/settings' }"
+      >
+        <img
+          src="/icons/profile.png"
+          alt=""
+          class="w-5 h-5 shrink-0 object-contain"
+        />
+        <span class="text-sm font-medium">ユーザー設定</span>
+      </NuxtLink>
+      <NuxtLink
         to="/login"
         class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
         @click.prevent="emit('logout')"
@@ -47,21 +59,21 @@
 </template>
 
 <script setup lang="ts">
-import homeIcon from '~/assets/icons/home.png'
-import logoutIcon from '~/assets/icons/logout.png'
+import homeIcon from "~/assets/icons/home.png";
+import logoutIcon from "~/assets/icons/logout.png";
 
-const route = useRoute()
+const route = useRoute();
 const emit = defineEmits<{
-  share: [text: string]
-  logout: []
-}>()
+  share: [text: string];
+  logout: [];
+}>();
 
-const shareText = ref('')
+const shareText = ref("");
 
 function onShareClick() {
-  const text = shareText.value.trim()
-  if (!text) return
-  emit('share', text)
-  shareText.value = ''
+  const text = shareText.value.trim();
+  if (!text) return;
+  emit("share", text);
+  shareText.value = "";
 }
 </script>

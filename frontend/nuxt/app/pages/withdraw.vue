@@ -11,7 +11,7 @@
         退会する場合は、メールアドレスとパスワードを入力してください。
       </p>
 
-      <form class="flex flex-col gap-6" @submit.prevent="handleSubmit">
+      <form class="flex flex-col gap-6" @submit.prevent="openConfirmModal">
         <div class="flex flex-col gap-2">
           <label for="email" class="text-sm font-medium text-gray-800">
             メールアドレス
@@ -58,6 +58,18 @@
         </NuxtLink>
       </form>
     </div>
+
+    <ConfirmModal
+      v-model="showModal"
+      title="退会の確認"
+      message="退会するとアカウント・投稿・コメントはすべて削除され、元に戻せません。本当に退会しますか？"
+      confirm-label="退会する"
+      cancel-label="キャンセル"
+      loading-label="処理中..."
+      :loading="loading"
+      variant="danger"
+      @confirm="handleSubmit"
+    />
   </div>
 </template>
 
@@ -69,8 +81,18 @@ const form = reactive({
 
 const loading = ref(false);
 const errorMessage = ref<string | null>(null);
+const showModal = ref(false);
 
 const config = useRuntimeConfig();
+
+function openConfirmModal() {
+  errorMessage.value = null;
+  if (!form.email.trim() || !form.password) {
+    errorMessage.value = "メールアドレスとパスワードを入力してください。";
+    return;
+  }
+  showModal.value = true;
+}
 
 function getXsrfToken(): string | null {
   if (process.client) {
@@ -114,6 +136,7 @@ async function handleSubmit() {
       },
     });
 
+    showModal.value = false;
     await navigateTo("/login");
   } catch (err: any) {
     const message =
@@ -123,6 +146,7 @@ async function handleSubmit() {
       err?.response?._data?.errors?.email?.[0] ||
       "退会に失敗しました。";
     errorMessage.value = message;
+    showModal.value = false;
   } finally {
     loading.value = false;
   }
