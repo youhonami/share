@@ -112,6 +112,32 @@ class AuthController extends Controller
     }
 
     /**
+     * Update the authenticated user's password.
+     */
+    public function updatePassword(Request $request)
+    {
+        $validated = $request->validate([
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        $user = $request->user();
+
+        if (! Hash::check($validated['current_password'], $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => ['現在のパスワードが正しくありません。'],
+            ]);
+        }
+
+        $user->password = Hash::make($validated['password']);
+        $user->save();
+
+        return response()->json([
+            'message' => 'パスワードを変更しました。',
+        ]);
+    }
+
+    /**
      * Destroy an authenticated session.
      */
     public function logout(Request $request)

@@ -52,13 +52,11 @@
               <p v-if="userNameMessage" class="text-sm" :class="userNameError ? 'text-red-400' : 'text-green-400'">
                 {{ userNameMessage }}
               </p>
-              <button
-                type="submit"
-                class="w-fit px-6 py-2.5 text-sm font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
-                :disabled="userNameForm.name.trim() === '' || userNameLoading"
-              >
-                {{ userNameLoading ? '変更中...' : 'ユーザーネームを変更する' }}
-              </button>
+              <SubmitButton
+                label="ユーザーネームを変更する"
+                :loading="userNameLoading"
+                :disabled="userNameForm.name.trim() === ''"
+              />
             </form>
           </section>
 
@@ -70,52 +68,35 @@
               class="flex flex-col gap-4"
               @submit.prevent="onSubmitPassword"
             >
-              <div class="flex flex-col gap-2">
-                <label for="current-password" class="text-sm font-medium text-gray-300">
-                  現在のパスワード
-                </label>
-                <input
-                  id="current-password"
-                  v-model="passwordForm.currentPassword"
-                  type="password"
-                  class="w-full py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
-                  placeholder="現在のパスワード"
-                  autocomplete="current-password"
-                />
-              </div>
-              <div class="flex flex-col gap-2">
-                <label for="new-password" class="text-sm font-medium text-gray-300">
-                  新しいパスワード
-                </label>
-                <input
-                  id="new-password"
-                  v-model="passwordForm.newPassword"
-                  type="password"
-                  class="w-full py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
-                  placeholder="新しいパスワード"
-                  autocomplete="new-password"
-                />
-              </div>
-              <div class="flex flex-col gap-2">
-                <label for="new-password-confirm" class="text-sm font-medium text-gray-300">
-                  新しいパスワード（確認）
-                </label>
-                <input
-                  id="new-password-confirm"
-                  v-model="passwordForm.newPasswordConfirm"
-                  type="password"
-                  class="w-full py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
-                  placeholder="新しいパスワード（確認）"
-                  autocomplete="new-password"
-                />
-              </div>
-              <button
-                type="submit"
-                class="w-fit px-6 py-2.5 text-sm font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
+              <PasswordInput
+                id="current-password"
+                v-model="passwordForm.currentPassword"
+                label="現在のパスワード"
+                placeholder="現在のパスワード"
+                autocomplete="current-password"
+              />
+              <PasswordInput
+                id="new-password"
+                v-model="passwordForm.newPassword"
+                label="新しいパスワード"
+                placeholder="新しいパスワード"
+                autocomplete="new-password"
+              />
+              <PasswordInput
+                id="new-password-confirm"
+                v-model="passwordForm.newPasswordConfirm"
+                label="新しいパスワード（確認）"
+                placeholder="新しいパスワード（確認）"
+                autocomplete="new-password"
+              />
+              <p v-if="passwordMessage" class="text-sm" :class="passwordError ? 'text-red-400' : 'text-green-400'">
+                {{ passwordMessage }}
+              </p>
+              <SubmitButton
+                label="パスワードを変更する"
+                :loading="passwordLoading"
                 :disabled="!isPasswordFormValid"
-              >
-                パスワードを変更する
-              </button>
+              />
             </form>
           </section>
         </template>
@@ -181,6 +162,9 @@ const passwordForm = reactive({
   newPassword: '',
   newPasswordConfirm: '',
 })
+const passwordLoading = ref(false)
+const passwordMessage = ref<string | null>(null)
+const passwordError = ref(false)
 
 const isPasswordFormValid = computed(() => {
   const { currentPassword, newPassword, newPasswordConfirm } = passwordForm
@@ -256,13 +240,53 @@ async function onSubmitUserName() {
   }
 }
 
-function onSubmitPassword() {
-  // TODO: パスワード変更APIを呼び出す
+async function onSubmitPassword() {
   if (!isPasswordFormValid.value) return
   if (passwordForm.newPassword !== passwordForm.newPasswordConfirm) return
-  console.log('パスワード変更')
-  passwordForm.currentPassword = ''
-  passwordForm.newPassword = ''
-  passwordForm.newPasswordConfirm = ''
+  passwordMessage.value = null
+  passwordError.value = false
+  passwordLoading.value = true
+
+  try {
+    const apiBase = config.public.apiBase
+    if (!getXsrfToken()) {
+      await $fetch('/sanctum/csrf-cookie', {
+        baseURL: apiBase,
+        credentials: 'include',
+      })
+    }
+    const xsrfToken = getXsrfToken()
+
+    await $fetch('/api/user/password', {
+      baseURL: apiBase,
+      method: 'PATCH',
+      credentials: 'include',
+      headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : undefined,
+      body: {
+        current_password: passwordForm.currentPassword,
+        password: passwordForm.newPassword,
+        password_confirmation: passwordForm.newPasswordConfirm,
+      },
+    })
+
+    passwordMessage.value = 'パスワードを変更しました。'
+    passwordError.value = false
+    passwordForm.currentPassword = ''
+    passwordForm.newPassword = ''
+    passwordForm.newPasswordConfirm = ''
+  } catch (err: any) {
+    const message =
+      err?.data?.message ||
+      err?.data?.errors?.current_password?.[0] ||
+      err?.data?.errors?.password?.[0] ||
+      err?.response?._data?.message ||
+      err?.response?._data?.errors?.current_password?.[0] ||
+      err?.response?._data?.errors?.password?.[0] ||
+      'パスワードの変更に失敗しました。'
+    passwordMessage.value = message
+    passwordError.value = true
+  } finally {
+    passwordLoading.value = false
+  }
 }
 </script>

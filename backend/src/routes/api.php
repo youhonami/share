@@ -29,6 +29,7 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
     Route::patch('/user', [AuthController::class, 'updateUser']);
+    Route::patch('/user/password', [AuthController::class, 'updatePassword']);
 
     Route::get('/tweets', [TweetController::class, 'index']);
     Route::get('/tweets/{id}', [TweetController::class, 'show']);

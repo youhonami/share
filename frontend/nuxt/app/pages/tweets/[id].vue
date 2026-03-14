@@ -60,13 +60,12 @@
             class="flex-1 py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
             @keydown.enter.prevent="submitComment"
           />
-          <button
-            type="button"
-            class="shrink-0 py-3 px-6 text-sm font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+          <SubmitButton
+            label="コメント"
+            button-type="button"
+            class="shrink-0"
             @click="submitComment"
-          >
-            コメント
-          </button>
+          />
         </div>
       </div>
     </main>

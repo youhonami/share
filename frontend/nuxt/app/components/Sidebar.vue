@@ -47,13 +47,12 @@
         class="w-full min-h-[120px] py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg resize-y placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
         rows="4"
       />
-      <button
-        type="button"
-        class="w-full py-3 px-4 text-sm font-semibold text-white bg-violet-600 rounded-lg hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+      <SubmitButton
+        label="シェアする"
+        button-type="button"
+        block
         @click="onShareClick"
-      >
-        シェアする
-      </button>
+      />
     </div>
   </aside>
 </template>
