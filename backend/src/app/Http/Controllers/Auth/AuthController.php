@@ -94,6 +94,24 @@ class AuthController extends Controller
     }
 
     /**
+     * Update the authenticated user's name.
+     */
+    public function updateUser(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+        $user->name = $validated['name'];
+        $user->save();
+
+        return response()->json([
+            'user' => $user,
+        ]);
+    }
+
+    /**
      * Destroy an authenticated session.
      */
     public function logout(Request $request)
