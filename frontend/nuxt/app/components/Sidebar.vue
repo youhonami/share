@@ -18,6 +18,14 @@
         <span class="text-sm font-medium">ホーム</span>
       </NuxtLink>
       <NuxtLink
+        to="/filter"
+        class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
+        :class="{ 'bg-gray-600/50': route.path === '/filter' }"
+      >
+        <img src="/icons/feather.png" alt="" class="w-5 h-5 shrink-0 object-contain" />
+        <span class="text-sm font-medium">絞り込み</span>
+      </NuxtLink>
+      <NuxtLink
         to="/settings"
         class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
         :class="{ 'bg-gray-600/50': route.path === '/settings' }"
