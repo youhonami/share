@@ -22,8 +22,8 @@
         class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
         :class="{ 'bg-gray-600/50': route.path === '/filter' }"
       >
-        <img src="/icons/feather.png" alt="" class="w-5 h-5 shrink-0 object-contain" />
-        <span class="text-sm font-medium">絞り込み</span>
+        <img :src="filterIcon" alt="" class="w-5 h-5 shrink-0 object-contain" />
+        <span class="text-sm font-medium">マイ投稿</span>
       </NuxtLink>
       <NuxtLink
         to="/settings"
@@ -68,6 +68,7 @@
 <script setup lang="ts">
 import homeIcon from "~/assets/icons/home.png";
 import logoutIcon from "~/assets/icons/logout.png";
+import filterIcon from "~/assets/icons/feather.png";
 
 const route = useRoute();
 const emit = defineEmits<{
