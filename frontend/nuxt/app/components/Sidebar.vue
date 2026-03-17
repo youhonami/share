@@ -14,7 +14,7 @@
         class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
         :class="{ 'bg-gray-600/50': route.path === '/' }"
       >
-        <img :src="homeIcon" alt="" class="w-5 h-5 shrink-0 object-contain" />
+        <img src="/icons/home.png" alt="" class="w-5 h-5 shrink-0 object-contain" />
         <span class="text-sm font-medium">ホーム</span>
       </NuxtLink>
       <NuxtLink
@@ -22,7 +22,7 @@
         class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
         :class="{ 'bg-gray-600/50': route.path === '/filter' }"
       >
-        <img :src="filterIcon" alt="" class="w-5 h-5 shrink-0 object-contain" />
+        <img src="/icons/feather.png" alt="" class="w-5 h-5 shrink-0 object-contain" />
         <span class="text-sm font-medium">マイ投稿</span>
       </NuxtLink>
       <NuxtLink
@@ -42,7 +42,7 @@
         class="flex items-center gap-3 py-2 px-3 text-white no-underline rounded-lg hover:bg-gray-600/50"
         @click.prevent="emit('logout')"
       >
-        <img :src="logoutIcon" alt="" class="w-5 h-5 shrink-0 object-contain" />
+        <img src="/icons/logout.png" alt="" class="w-5 h-5 shrink-0 object-contain" />
         <span class="text-sm">ログアウト</span>
       </NuxtLink>
     </nav>
@@ -66,10 +66,6 @@
 </template>
 
 <script setup lang="ts">
-import homeIcon from "~/assets/icons/home.png";
-import logoutIcon from "~/assets/icons/logout.png";
-import filterIcon from "~/assets/icons/feather.png";
-
 const route = useRoute();
 const emit = defineEmits<{
   share: [text: string];

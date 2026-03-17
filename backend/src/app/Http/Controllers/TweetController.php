@@ -25,7 +25,7 @@ class TweetController extends Controller
             ->pluck('tweet_id')
             ->all();
 
-        return $tweets->map(function (Tweet $tweet) use ($likedTweetIds) {
+        return $tweets->map(function (Tweet $tweet) use ($likedTweetIds, $user) {
             return [
                 'id' => $tweet->id,
                 'userName' => $tweet->user ? $tweet->user->name : '',
@@ -33,6 +33,7 @@ class TweetController extends Controller
                 'likeCount' => $tweet->likes_count,
                 'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
                 'likedByMe' => in_array($tweet->id, $likedTweetIds, true),
+                'canDelete' => $tweet->user_id === $user->id,
             ];
         });
     }
@@ -67,12 +68,14 @@ class TweetController extends Controller
                 'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
                 'likedByMe' => $likedByMe,
             ],
-            'comments' => $comments->map(function ($comment) {
+            'comments' => $comments->map(function ($comment) use ($user) {
                 return [
                     'id' => $comment->id,
                     'userName' => $comment->user ? $comment->user->name : '',
                     'text' => $comment->text,
                     'createdAt' => $comment->created_at?->format('Y/m/d H:i'),
+                    'canDelete' => $comment->user_id === $user->id,
+                    'canEdit' => $comment->user_id === $user->id,
                 ];
             })->values(),
         ];
@@ -103,7 +106,41 @@ class TweetController extends Controller
             'likeCount' => 0,
             'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
             'likedByMe' => false,
+            'canDelete' => true,
         ], 201);
+    }
+
+    /**
+     * ログインユーザーのツイート内容を更新する.
+     */
+    public function update(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        $tweet = Tweet::where('id', $id)
+            ->where('user_id', $user->id)
+            ->firstOrFail();
+
+        $validated = $request->validate([
+            'text' => ['required', 'string', 'max:500'],
+        ]);
+
+        $tweet->text = $validated['text'];
+        $tweet->save();
+
+        $likesCount = $tweet->likes()->count();
+
+        return response()->json([
+            'id' => $tweet->id,
+            'userName' => $tweet->user ? $tweet->user->name : '',
+            'text' => $tweet->text,
+            'likeCount' => $likesCount,
+            'createdAt' => $tweet->created_at?->format('Y/m/d H:i'),
+            'likedByMe' => Like::where('tweet_id', $tweet->id)
+                ->where('user_id', $user->id)
+                ->exists(),
+            'canDelete' => true,
+        ]);
     }
 
     /**

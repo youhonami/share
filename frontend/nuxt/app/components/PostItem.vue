@@ -21,6 +21,16 @@
         </button>
 
         <button
+          v-if="showEdit"
+          type="button"
+          class="p-1 text-gray-400 hover:text-white"
+          aria-label="編集"
+          @click="$emit('edit')"
+        >
+          <img src="/icons/feather.png" alt="編集" class="w-4 h-4" />
+        </button>
+
+        <button
           v-if="showDelete"
           type="button"
           class="p-1 text-gray-400 hover:text-white"
@@ -64,6 +74,7 @@ const props = defineProps<{
   createdAt: string
   likedByMe: boolean
   showDelete?: boolean
+  showEdit?: boolean
   showDetail?: boolean
   showClose?: boolean
   detailTo?: string
@@ -71,6 +82,7 @@ const props = defineProps<{
 
 defineEmits<{
   delete: []
+  edit: []
   'toggle-like': []
 }>()
 </script>

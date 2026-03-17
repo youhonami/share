@@ -18,13 +18,28 @@
           :like-count="post.likeCount"
           :created-at="post.createdAt"
           :liked-by-me="post.likedByMe"
-          :show-delete="true"
+          :show-delete="post.canDelete"
+          :show-edit="post.canDelete"
           :show-detail="true"
           :detail-to="`/tweets/${post.id}`"
           @delete="handleDelete(post.id)"
+          @edit="handleEdit(post)"
           @toggle-like="handleToggleLike(post.id)"
         />
       </div>
+
+      <EditTextModal
+        :open="editModalOpen"
+        title="投稿を編集"
+        label="投稿内容"
+        :initial-text="editingPost?.text ?? ''"
+        placeholder="投稿内容を入力..."
+        :loading="editModalLoading"
+        save-label="更新する"
+        save-loading-label="更新中..."
+        @update:open="editModalOpen = $event"
+        @save="handleEditSave"
+      />
     </main>
   </div>
 </template>
@@ -39,10 +54,14 @@ type Post = {
   likeCount: number
   createdAt: string
   likedByMe: boolean
+  canDelete: boolean
 }
 
 const config = useRuntimeConfig()
 const posts = ref<Post[]>([])
+const editModalOpen = ref(false)
+const editModalLoading = ref(false)
+const editingPost = ref<Post | null>(null)
 
 function getXsrfToken(): string | null {
   if (process.client) {
@@ -57,14 +76,29 @@ function getXsrfToken(): string | null {
   return null
 }
 
+async function apiFetch<T>(path: string, options: any = {}) {
+  const apiBase = config.public.apiBase
+  return await $fetch<T>(path, {
+    baseURL: apiBase,
+    credentials: 'include',
+    ...options,
+  })
+}
+
+async function apiFetchWithCsrf<T>(path: string, options: any = {}) {
+  if (!getXsrfToken()) {
+    await apiFetch('/sanctum/csrf-cookie')
+  }
+  const xsrfToken = getXsrfToken()
+  return await apiFetch<T>(path, {
+    headers: xsrfToken ? { 'X-XSRF-TOKEN': xsrfToken } : undefined,
+    ...options,
+  })
+}
+
 async function fetchTweets() {
   try {
-    const apiBase = config.public.apiBase
-    const data = await $fetch<Post[]>('/api/tweets', {
-      baseURL: apiBase,
-      credentials: 'include',
-    })
-    posts.value = data
+    posts.value = await apiFetch<Post[]>('/api/tweets')
   } catch (error) {
     console.error('ツイートの取得に失敗しました', error)
   }
@@ -74,26 +108,8 @@ onMounted(fetchTweets)
 
 async function handleShare(text: string) {
   try {
-    const apiBase = config.public.apiBase
-
-    // 必要であれば CSRF Cookie を取得
-    if (!getXsrfToken()) {
-      await $fetch('/sanctum/csrf-cookie', {
-        baseURL: apiBase,
-        credentials: 'include',
-      })
-    }
-
-    const xsrfToken = getXsrfToken()
-    const newPost = await $fetch<Post>('/api/tweets', {
-      baseURL: apiBase,
+    const newPost = await apiFetchWithCsrf<Post>('/api/tweets', {
       method: 'POST',
-      credentials: 'include',
-      headers: xsrfToken
-        ? {
-            'X-XSRF-TOKEN': xsrfToken,
-          }
-        : undefined,
       body: { text },
     })
 
@@ -105,26 +121,8 @@ async function handleShare(text: string) {
 
 async function handleDelete(id: number) {
   try {
-    const apiBase = config.public.apiBase
-
-    if (!getXsrfToken()) {
-      await $fetch('/sanctum/csrf-cookie', {
-        baseURL: apiBase,
-        credentials: 'include',
-      })
-    }
-
-    const xsrfToken = getXsrfToken()
-
-    await $fetch(`/api/tweets/${id}`, {
-      baseURL: apiBase,
+    await apiFetchWithCsrf(`/api/tweets/${id}`, {
       method: 'DELETE',
-      credentials: 'include',
-      headers: xsrfToken
-        ? {
-            'X-XSRF-TOKEN': xsrfToken,
-          }
-        : undefined,
     })
 
     posts.value = posts.value.filter((p) => p.id !== id)
@@ -133,37 +131,49 @@ async function handleDelete(id: number) {
   }
 }
 
+async function handleEdit(post: Post) {
+  editingPost.value = post
+  editModalOpen.value = true
+}
+
+async function handleEditSave(text: string) {
+  if (!editingPost.value) return
+
+  const initial = editingPost.value.text
+  const trimmed = text.trim()
+  if (!trimmed || trimmed === initial) {
+    editModalOpen.value = false
+    return
+  }
+
+  editModalLoading.value = true
+
+  try {
+    const updated = await apiFetchWithCsrf<Post>(
+      `/api/tweets/${editingPost.value.id}`,
+      { method: 'PATCH', body: { text: trimmed } },
+    )
+
+    posts.value = posts.value.map((p) => (p.id === updated.id ? updated : p))
+    editModalOpen.value = false
+  } catch (error) {
+    console.error('ツイートの編集に失敗しました', error)
+  } finally {
+    editModalLoading.value = false
+  }
+}
+
 async function handleToggleLike(id: number) {
   try {
-    const apiBase = config.public.apiBase
-
-    if (!getXsrfToken()) {
-      await $fetch('/sanctum/csrf-cookie', {
-        baseURL: apiBase,
-        credentials: 'include',
-      })
-    }
-
-    const xsrfToken = getXsrfToken()
-
     const target = posts.value.find((p) => p.id === id)
     if (!target) return
 
     const method = target.likedByMe ? 'DELETE' : 'POST'
 
-    const result = await $fetch<{ likeCount: number; likedByMe: boolean }>(
-      `/api/tweets/${id}/like`,
-      {
-        baseURL: apiBase,
-        method,
-        credentials: 'include',
-        headers: xsrfToken
-          ? {
-              'X-XSRF-TOKEN': xsrfToken,
-            }
-          : undefined,
-      },
-    )
+    const result = await apiFetchWithCsrf<{
+      likeCount: number
+      likedByMe: boolean
+    }>(`/api/tweets/${id}/like`, { method })
 
     target.likeCount = result.likeCount
     target.likedByMe = result.likedByMe

@@ -38,13 +38,35 @@
               :key="comment.id"
               class="pt-3 first:pt-0"
             >
-              <div class="flex items-center gap-2">
-                <p class="text-white font-medium text-sm">
-                  {{ comment.userName }}
-                </p>
-                <p class="text-xs text-gray-400">
-                  {{ comment.createdAt }}
-                </p>
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <p class="text-white font-medium text-sm">
+                    {{ comment.userName }}
+                  </p>
+                  <p class="text-xs text-gray-400">
+                    {{ comment.createdAt }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    v-if="comment.canEdit"
+                    type="button"
+                    class="p-1 text-gray-400 hover:text-white"
+                    aria-label="コメントを編集"
+                    @click="openCommentEdit(comment)"
+                  >
+                    <img src="/icons/feather.png" alt="編集" class="w-4 h-4" />
+                  </button>
+                  <button
+                    v-if="comment.canDelete"
+                    type="button"
+                    class="p-1 text-gray-400 hover:text-white"
+                    aria-label="コメントを削除"
+                    @click="handleDeleteComment(comment.id)"
+                  >
+                    <img src="/icons/cross.png" alt="" class="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <p class="text-white text-sm mt-1">{{ comment.text }}</p>
             </div>
@@ -67,6 +89,19 @@
             @click="submitComment"
           />
         </div>
+
+        <EditTextModal
+          :open="commentEditOpen"
+          title="コメントを編集"
+          label="コメント内容"
+          :initial-text="editingComment?.text ?? ''"
+          placeholder="コメント内容を入力..."
+          :loading="commentEditLoading"
+          save-label="更新する"
+          save-loading-label="更新中..."
+          @update:open="commentEditOpen = $event"
+          @save="handleCommentEditSave"
+        />
       </div>
     </main>
   </div>
@@ -89,6 +124,8 @@ type Comment = {
   userName: string;
   text: string;
   createdAt: string;
+  canDelete: boolean;
+  canEdit: boolean;
 };
 
 const route = useRoute();
@@ -98,6 +135,9 @@ const tweetId = computed(() => Number(route.params.id) || 0);
 const post = ref<Post | null>(null);
 const comments = ref<Comment[]>([]);
 const newComment = ref("");
+const commentEditOpen = ref(false);
+const commentEditLoading = ref(false);
+const editingComment = ref<Comment | null>(null);
 
 function getXsrfToken(): string | null {
   if (process.client) {
@@ -239,6 +279,43 @@ function submitComment() {
   });
 }
 
+function openCommentEdit(comment: Comment) {
+  editingComment.value = comment;
+  commentEditOpen.value = true;
+}
+
+async function handleDeleteComment(commentId: number) {
+  try {
+    const apiBase = config.public.apiBase;
+
+    if (!getXsrfToken()) {
+      await $fetch("/sanctum/csrf-cookie", {
+        baseURL: apiBase,
+        credentials: "include",
+      });
+    }
+
+    const xsrfToken = getXsrfToken();
+
+    await $fetch(`/api/comments/${commentId}`, {
+      baseURL: apiBase,
+      method: "DELETE",
+      credentials: "include",
+      headers: xsrfToken
+        ? {
+            "X-XSRF-TOKEN": xsrfToken,
+          }
+        : undefined,
+    });
+
+    comments.value = comments.value.filter(
+      (comment) => comment.id !== commentId,
+    );
+  } catch (error) {
+    console.error("コメントの削除に失敗しました", error);
+  }
+}
+
 async function handleToggleLikePost() {
   if (!post.value) return;
 
@@ -274,6 +351,56 @@ async function handleToggleLikePost() {
     post.value.likedByMe = result.likedByMe;
   } catch (error) {
     console.error("いいねの更新に失敗しました", error);
+  }
+}
+
+async function handleCommentEditSave(text: string) {
+  if (!editingComment.value) return;
+
+  const initial = editingComment.value.text;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed === initial) {
+    commentEditOpen.value = false;
+    return;
+  }
+
+  commentEditLoading.value = true;
+
+  try {
+    const apiBase = config.public.apiBase;
+
+    if (!getXsrfToken()) {
+      await $fetch("/sanctum/csrf-cookie", {
+        baseURL: apiBase,
+        credentials: "include",
+      });
+    }
+
+    const xsrfToken = getXsrfToken();
+
+    const updated = await $fetch<Comment>(
+      `/api/comments/${editingComment.value.id}`,
+      {
+        baseURL: apiBase,
+        method: "PATCH",
+        credentials: "include",
+        headers: xsrfToken
+          ? {
+              "X-XSRF-TOKEN": xsrfToken,
+            }
+          : undefined,
+        body: { text: trimmed },
+      },
+    );
+
+    comments.value = comments.value.map((comment) =>
+      comment.id === updated.id ? updated : comment,
+    );
+    commentEditOpen.value = false;
+  } catch (error) {
+    console.error("コメントの編集に失敗しました", error);
+  } finally {
+    commentEditLoading.value = false;
   }
 }
 </script>
