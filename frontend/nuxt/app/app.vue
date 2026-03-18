@@ -1,3 +1,10 @@
+<script setup lang="ts">
+import { useTheme } from '~/composables/useTheme'
+
+// 初期テーマを適用するだけでOK
+useTheme()
+</script>
+
 <template>
   <div class="app">
     <NuxtRouteAnnouncer />

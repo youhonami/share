@@ -101,11 +101,31 @@
           </section>
         </template>
 
-        <!-- その他タブ（今後の設定項目用） -->
+        <!-- その他タブ -->
         <template v-else-if="activeTab === 'other'">
-          <p class="text-gray-400 text-sm">
-            設定項目は今後追加予定です。
-          </p>
+          <section class="flex flex-col gap-4">
+            <h2 class="text-white text-base font-medium">
+              表示テーマ
+            </h2>
+            <p class="text-sm text-gray-400">
+              ページ全体の背景色を変更できます。
+            </p>
+            <div class="flex flex-col gap-2 max-w-xs">
+              <label for="theme-select" class="text-sm font-medium text-gray-300">
+                テーマ
+              </label>
+              <select
+                id="theme-select"
+                v-model="selectedTheme"
+                class="w-full py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
+              >
+                <option value="dark" class="text-gray-900">ダーク（標準）</option>
+                <option value="blue" class="text-gray-900">ブルー</option>
+                <option value="green" class="text-gray-900">グリーン</option>
+              </select>
+            </div>
+
+          </section>
         </template>
       </div>
     </main>
@@ -136,6 +156,7 @@ const activeTab = computed({
 })
 
 const config = useRuntimeConfig()
+const { theme, setTheme } = useTheme()
 const currentUserName = ref<string | null>(null)
 const userNameForm = reactive({
   name: '',
@@ -165,6 +186,11 @@ const passwordForm = reactive({
 const passwordLoading = ref(false)
 const passwordMessage = ref<string | null>(null)
 const passwordError = ref(false)
+
+const selectedTheme = computed<Theme>({
+  get: () => theme.value,
+  set: (value) => setTheme(value),
+})
 
 const isPasswordFormValid = computed(() => {
   const { currentPassword, newPassword, newPasswordConfirm } = passwordForm
