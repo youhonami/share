@@ -18,6 +18,10 @@ class LikeController extends Controller
 
         $tweet = Tweet::findOrFail($id);
 
+        if ($user->isBlockedByUserId($tweet->user_id)) {
+            abort(404);
+        }
+
         Like::firstOrCreate([
             'tweet_id' => $tweet->id,
             'user_id' => $user->id,
@@ -39,6 +43,10 @@ class LikeController extends Controller
         $user = $request->user();
 
         $tweet = Tweet::findOrFail($id);
+
+        if ($user->isBlockedByUserId($tweet->user_id)) {
+            abort(404);
+        }
 
         Like::where('tweet_id', $tweet->id)
             ->where('user_id', $user->id)

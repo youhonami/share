@@ -16,8 +16,13 @@ class TweetController extends Controller
     {
         $user = $request->user();
 
+        $blockerIds = $user->getBlockerUserIds();
+
         $tweets = Tweet::with('user')
             ->withCount('likes')
+            ->when(count($blockerIds) > 0, function ($query) use ($blockerIds) {
+                $query->whereNotIn('user_id', $blockerIds);
+            })
             ->latest()
             ->get();
 
@@ -48,6 +53,10 @@ class TweetController extends Controller
         $tweet = Tweet::with('user')
             ->withCount('likes')
             ->findOrFail($id);
+
+        if ($user->isBlockedByUserId($tweet->user_id)) {
+            abort(404);
+        }
 
         $likedByMe = Like::where('tweet_id', $tweet->id)
             ->where('user_id', $user->id)

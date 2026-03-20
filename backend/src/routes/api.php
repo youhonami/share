@@ -5,6 +5,7 @@ use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\TweetController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\BlockController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/user/password', [AuthController::class, 'updatePassword']);
 
     Route::get('/users', [UserController::class, 'index']);
+
+    Route::get('/blocks', [BlockController::class, 'index']);
+    Route::post('/blocks', [BlockController::class, 'store']);
+    Route::delete('/blocks/{blockedUserId}', [BlockController::class, 'destroy']);
 
     Route::get('/tweets', [TweetController::class, 'index']);
     Route::get('/tweets/{id}', [TweetController::class, 'show']);

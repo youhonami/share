@@ -19,6 +19,10 @@ class CommentController extends Controller
 
         $tweet = Tweet::findOrFail($id);
 
+        if ($user->isBlockedByUserId($tweet->user_id)) {
+            abort(404);
+        }
+
         $validated = $request->validate([
             'text' => ['required', 'string', 'max:500'],
         ]);
@@ -52,6 +56,11 @@ class CommentController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
+        $comment->load('tweet');
+        if ($comment->tweet && $user->isBlockedByUserId($comment->tweet->user_id)) {
+            abort(404);
+        }
+
         $validated = $request->validate([
             'text' => ['required', 'string', 'max:500'],
         ]);
@@ -79,6 +88,11 @@ class CommentController extends Controller
         $comment = Comment::where('id', $id)
             ->where('user_id', $user->id)
             ->firstOrFail();
+
+        $comment->load('tweet');
+        if ($comment->tweet && $user->isBlockedByUserId($comment->tweet->user_id)) {
+            abort(404);
+        }
 
         $comment->delete();
 
