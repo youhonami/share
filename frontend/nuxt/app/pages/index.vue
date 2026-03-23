@@ -33,6 +33,7 @@
         title="投稿を編集"
         label="投稿内容"
         :initial-text="editingPost?.text ?? ''"
+        :max-length="120"
         placeholder="投稿内容を入力..."
         :loading="editModalLoading"
         save-label="更新する"

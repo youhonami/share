@@ -73,21 +73,20 @@
           </div>
         </div>
 
-        <!-- コメント入力（常に画面内下部に表示） -->
-        <div class="flex gap-3 mt-6">
-          <input
+        <!-- コメント入力（必須・120文字以内・ツイートのシェアと同様） -->
+        <div class="flex flex-col gap-2 mt-6">
+          <textarea
             v-model="newComment"
-            type="text"
+            maxlength="120"
+            rows="3"
             placeholder="コメントを入力..."
-            class="flex-1 py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
-            @keydown.enter.prevent="submitComment"
+            class="w-full py-3 px-4 text-sm text-white bg-gray-700/50 border border-gray-500 rounded-lg resize-y placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
+            :class="commentInputError ? 'border-red-500' : ''"
+            @input="commentInputError = ''"
           />
-          <SubmitButton
-            label="コメント"
-            button-type="button"
-            class="shrink-0"
-            @click="submitComment"
-          />
+          <p class="text-xs text-right transition-colors" :class="newComment.length >= COMMENT_MAX ? 'text-red-400' : 'text-gray-400'">{{ newComment.length }}/{{ COMMENT_MAX }}</p>
+          <p v-if="commentInputError" class="text-sm text-red-400">{{ commentInputError }}</p>
+          <SubmitButton label="コメント" button-type="button" class="w-fit" @click="submitComment" />
         </div>
 
         <EditTextModal
@@ -95,6 +94,7 @@
           title="コメントを編集"
           label="コメント内容"
           :initial-text="editingComment?.text ?? ''"
+          :max-length="COMMENT_MAX"
           placeholder="コメント内容を入力..."
           :loading="commentEditLoading"
           save-label="更新する"
@@ -108,7 +108,11 @@
 </template>
 
 <script setup lang="ts">
+import { pickFieldErrors } from "~/utils/validationErrors";
+
 definePageMeta({ layout: "home", middleware: "auth" });
+
+const COMMENT_MAX = 120;
 
 type Post = {
   id: number;
@@ -135,6 +139,7 @@ const tweetId = computed(() => Number(route.params.id) || 0);
 const post = ref<Post | null>(null);
 const comments = ref<Comment[]>([]);
 const newComment = ref("");
+const commentInputError = ref("");
 const commentEditOpen = ref(false);
 const commentEditLoading = ref(false);
 const editingComment = ref<Comment | null>(null);
@@ -240,43 +245,38 @@ function handleLogout() {
   navigateTo("/login");
 }
 
-function submitComment() {
+async function submitComment() {
+  commentInputError.value = "";
   const text = newComment.value.trim();
-  if (!text) return;
+  if (!text) {
+    commentInputError.value = "コメントを入力してください。";
+    return;
+  }
+  if (newComment.value.length > COMMENT_MAX) {
+    commentInputError.value = `コメントは${COMMENT_MAX}文字以内で入力してください。`;
+    return;
+  }
+
   const apiBase = config.public.apiBase;
-
-  const ensureComment = async () => {
+  try {
     if (!getXsrfToken()) {
-      await $fetch("/sanctum/csrf-cookie", {
-        baseURL: apiBase,
-        credentials: "include",
-      });
+      await $fetch("/sanctum/csrf-cookie", { baseURL: apiBase, credentials: "include" });
     }
-
     const xsrfToken = getXsrfToken();
-
-    const newItem = await $fetch<Comment>(
-      `/api/tweets/${tweetId.value}/comments`,
-      {
-        baseURL: apiBase,
-        method: "POST",
-        credentials: "include",
-        headers: xsrfToken
-          ? {
-              "X-XSRF-TOKEN": xsrfToken,
-            }
-          : undefined,
-        body: { text },
-      },
-    );
-
+    const newItem = await $fetch<Comment>(`/api/tweets/${tweetId.value}/comments`, {
+      baseURL: apiBase,
+      method: "POST",
+      credentials: "include",
+      headers: xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : undefined,
+      body: { text },
+    });
     comments.value = [newItem, ...comments.value];
     newComment.value = "";
-  };
-
-  ensureComment().catch((error) => {
-    console.error("コメントの投稿に失敗しました", error);
-  });
+  } catch (err: unknown) {
+    const fe = pickFieldErrors(err);
+    if (fe.text) commentInputError.value = fe.text;
+    else console.error("コメントの投稿に失敗しました", err);
+  }
 }
 
 function openCommentEdit(comment: Comment) {

@@ -23,11 +23,19 @@
           <textarea
             v-model="localText"
             :rows="textareaRows"
+            :maxlength="maxLength ?? undefined"
             class="w-full py-2.5 px-3 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg resize-y placeholder-gray-400 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 box-border"
             :placeholder="placeholder"
           />
         </label>
 
+        <p
+          v-if="maxLength != null"
+          class="text-xs mb-1 transition-colors"
+          :class="localText.length >= maxLength ? 'text-red-500' : 'text-gray-500'"
+        >
+          {{ localText.length }}/{{ maxLength }}
+        </p>
         <p v-if="errorMessage" class="text-xs text-red-500 mb-3">
           {{ errorMessage }}
         </p>
@@ -67,6 +75,8 @@ const props = withDefaults(
     saveLoadingLabel?: string
     loading?: boolean
     textareaRows?: number
+    /** 指定時は文字数上限（つぶやき編集など） */
+    maxLength?: number
   }>(),
   {
     label: '',
@@ -75,6 +85,7 @@ const props = withDefaults(
     saveLoadingLabel: '保存中...',
     loading: false,
     textareaRows: 4,
+    maxLength: undefined,
   },
 )
 
@@ -96,7 +107,12 @@ watch(
   },
 )
 
-const canSave = computed(() => localText.value.trim().length > 0)
+const canSave = computed(() => {
+  const t = localText.value.trim()
+  if (!t) return false
+  if (props.maxLength != null && localText.value.length > props.maxLength) return false
+  return true
+})
 
 function handleClose() {
   if (!props.loading) {
@@ -108,6 +124,10 @@ function handleSave() {
   const text = localText.value.trim()
   if (!text) {
     errorMessage.value = '内容を入力してください。'
+    return
+  }
+  if (props.maxLength != null && localText.value.length > props.maxLength) {
+    errorMessage.value = `${props.maxLength}文字以内で入力してください。`
     return
   }
   errorMessage.value = null

@@ -3,17 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CommentTextRequest;
 use App\Models\Comment;
 use App\Models\Tweet;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class CommentController extends Controller
 {
     /**
      * 指定ツイートにコメントを追加する.
      */
-    public function store(Request $request, int $id)
+    public function store(CommentTextRequest $request, int $id)
     {
         $user = $request->user();
 
@@ -23,9 +23,7 @@ class CommentController extends Controller
             abort(404);
         }
 
-        $validated = $request->validate([
-            'text' => ['required', 'string', 'max:500'],
-        ]);
+        $validated = $request->validated();
 
         $comment = Comment::create([
             'tweet_id' => $tweet->id,
@@ -48,7 +46,7 @@ class CommentController extends Controller
     /**
      * ログインユーザーのコメント内容を更新する.
      */
-    public function update(Request $request, int $id)
+    public function update(CommentTextRequest $request, int $id)
     {
         $user = $request->user();
 
@@ -61,9 +59,7 @@ class CommentController extends Controller
             abort(404);
         }
 
-        $validated = $request->validate([
-            'text' => ['required', 'string', 'max:500'],
-        ]);
+        $validated = $request->validated();
 
         $comment->text = $validated['text'];
         $comment->save();

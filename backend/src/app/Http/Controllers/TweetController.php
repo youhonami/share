@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\TweetTextRequest;
 use App\Models\Like;
 use App\Models\Tweet;
 use Illuminate\Http\Request;
@@ -93,13 +94,11 @@ class TweetController extends Controller
     /**
      * 新しいツイートを作成する.
      */
-    public function store(Request $request)
+    public function store(TweetTextRequest $request)
     {
         $user = $request->user();
 
-        $validated = $request->validate([
-            'text' => ['required', 'string', 'max:500'],
-        ]);
+        $validated = $request->validated();
 
         $tweet = Tweet::create([
             'user_id' => $user->id,
@@ -122,7 +121,7 @@ class TweetController extends Controller
     /**
      * ログインユーザーのツイート内容を更新する.
      */
-    public function update(Request $request, int $id)
+    public function update(TweetTextRequest $request, int $id)
     {
         $user = $request->user();
 
@@ -130,9 +129,7 @@ class TweetController extends Controller
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $validated = $request->validate([
-            'text' => ['required', 'string', 'max:500'],
-        ]);
+        $validated = $request->validated();
 
         $tweet->text = $validated['text'];
         $tweet->save();
