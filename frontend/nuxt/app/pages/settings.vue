@@ -26,22 +26,34 @@
           <section class="flex flex-col gap-4">
             <h2 class="text-white text-base font-medium">ユーザーネームの変更</h2>
             <p v-if="currentUserName" class="text-sm text-gray-400">現在のユーザーネーム: {{ currentUserName }}</p>
-            <form class="flex flex-col gap-4" @submit.prevent="onSubmitUserName">
+            <form class="flex flex-col gap-4" novalidate @submit.prevent="onSubmitUserName">
               <div class="flex flex-col gap-2">
                 <label for="user-name" class="text-sm font-medium text-gray-300">新しいユーザーネーム</label>
-                <input id="user-name" v-model="userNameForm.name" type="text" :class="controlClass" placeholder="ユーザーネーム" />
+                <input id="user-name" v-model="userNameForm.name" type="text" maxlength="20" autocomplete="username" :class="[controlClass, userNameFieldError ? 'border-red-500' : '']" placeholder="ユーザーネーム" @input="userNameFieldError = ''" />
+                <p class="text-xs text-right transition-colors" :class="userNameForm.name.length >= USER_NAME_MAX ? 'text-red-400' : 'text-gray-400'">{{ userNameForm.name.length }}/{{ USER_NAME_MAX }}</p>
+                <p v-if="userNameFieldError" class="text-sm text-red-400">{{ userNameFieldError }}</p>
               </div>
               <p v-if="userNameMessage" class="text-sm" :class="userNameError ? 'text-red-400' : 'text-green-400'">{{ userNameMessage }}</p>
-              <SubmitButton label="ユーザーネームを変更する" :loading="userNameLoading" :disabled="userNameForm.name.trim() === ''" />
+              <SubmitButton label="ユーザーネームを変更する" :loading="userNameLoading" :disabled="!canSubmitUserName" />
             </form>
           </section>
 
           <section class="flex flex-col gap-4">
             <h2 class="text-white text-base font-medium">パスワードの変更</h2>
-            <form class="flex flex-col gap-4" @submit.prevent="onSubmitPassword">
-              <PasswordInput id="current-password" v-model="passwordForm.currentPassword" label="現在のパスワード" placeholder="現在のパスワード" autocomplete="current-password" />
-              <PasswordInput id="new-password" v-model="passwordForm.newPassword" label="新しいパスワード" placeholder="新しいパスワード" autocomplete="new-password" />
-              <PasswordInput id="new-password-confirm" v-model="passwordForm.newPasswordConfirm" label="新しいパスワード（確認）" placeholder="新しいパスワード（確認）" autocomplete="new-password" />
+            <p class="text-sm text-gray-400">新しいパスワードは6文字以上の英数字で入力してください。</p>
+            <form class="flex flex-col gap-4" novalidate @submit.prevent="onSubmitPassword">
+              <div class="flex flex-col gap-2">
+                <PasswordInput id="current-password" v-model="passwordForm.currentPassword" label="現在のパスワード" placeholder="現在のパスワード" autocomplete="current-password" />
+                <p v-if="passwordFieldErrors.current_password" class="text-sm text-red-400 -mt-1">{{ passwordFieldErrors.current_password }}</p>
+              </div>
+              <div class="flex flex-col gap-2">
+                <PasswordInput id="new-password" v-model="passwordForm.newPassword" label="新しいパスワード" placeholder="新しいパスワード（6文字以上）" autocomplete="new-password" />
+                <p v-if="passwordFieldErrors.password" class="text-sm text-red-400 -mt-1">{{ passwordFieldErrors.password }}</p>
+              </div>
+              <div class="flex flex-col gap-2">
+                <PasswordInput id="new-password-confirm" v-model="passwordForm.newPasswordConfirm" label="新しいパスワード（確認）" placeholder="新しいパスワード（確認）" autocomplete="new-password" />
+                <p v-if="passwordFieldErrors.password_confirmation" class="text-sm text-red-400 -mt-1">{{ passwordFieldErrors.password_confirmation }}</p>
+              </div>
               <p v-if="passwordMessage" class="text-sm" :class="passwordError ? 'text-red-400' : 'text-green-400'">{{ passwordMessage }}</p>
               <SubmitButton label="パスワードを変更する" :loading="passwordLoading" :disabled="!isPasswordFormValid" />
             </form>
@@ -110,7 +122,11 @@
 </template>
 
 <script setup lang="ts">
+import { pickFieldErrors } from "~/utils/validationErrors";
+
 definePageMeta({ layout: "home", middleware: "auth" });
+
+const USER_NAME_MAX = 20;
 
 // --- タブ定義・URL同期（?tab=account など） ---
 type TabId = "options" | "account" | "block";
@@ -154,16 +170,33 @@ const userNameForm = reactive({ name: "" });
 const userNameLoading = ref(false);
 const userNameMessage = ref<string | null>(null);
 const userNameError = ref(false);
+const userNameFieldError = ref("");
+const canSubmitUserName = computed(() => {
+  const t = userNameForm.name.trim();
+  return t.length > 0 && userNameForm.name.length <= USER_NAME_MAX;
+});
 
 // --- アカウント：パスワード（PATCH /api/user/password） ---
 const passwordForm = reactive({ currentPassword: "", newPassword: "", newPasswordConfirm: "" });
 const passwordLoading = ref(false);
 const passwordMessage = ref<string | null>(null);
 const passwordError = ref(false);
+const passwordFieldErrors = reactive({ current_password: "", password: "", password_confirmation: "" });
 const isPasswordFormValid = computed(() => {
   const a = passwordForm;
-  return a.currentPassword.trim() && a.newPassword.trim() && a.newPasswordConfirm.trim() && a.newPassword === a.newPasswordConfirm;
+  if (!a.currentPassword.trim() || !a.newPassword.trim() || !a.newPasswordConfirm.trim()) return false;
+  if (a.newPassword.length < 6) return false;
+  if (a.newPassword !== a.newPasswordConfirm) return false;
+  return true;
 });
+
+watch(
+  passwordForm,
+  () => {
+    Object.assign(passwordFieldErrors, { current_password: "", password: "", password_confirmation: "" });
+  },
+  { deep: true },
+);
 
 // --- オプション：テーマ（useTheme） ---
 const { theme, setTheme } = useTheme();
@@ -289,9 +322,10 @@ onMounted(() => {
 
 // --- 送信：ユーザーネーム ---
 async function onSubmitUserName() {
-  if (userNameForm.name.trim() === "") return;
+  if (!canSubmitUserName.value) return;
   userNameMessage.value = null;
   userNameError.value = false;
+  userNameFieldError.value = "";
   userNameLoading.value = true;
   try {
     const xsrf = await ensureXsrfCookie();
@@ -305,9 +339,14 @@ async function onSubmitUserName() {
     currentUserName.value = res.user.name;
     userNameMessage.value = "ユーザーネームを変更しました。";
     userNameError.value = false;
-  } catch (err: any) {
-    userNameMessage.value =
-      err?.data?.message || err?.data?.errors?.name?.[0] || err?.response?._data?.message || err?.response?._data?.errors?.name?.[0] || "ユーザーネームの変更に失敗しました。";
+  } catch (err: unknown) {
+    const fe = pickFieldErrors(err);
+    if (fe.name) {
+      userNameFieldError.value = fe.name;
+      return;
+    }
+    const e = err as { data?: { message?: string }; response?: { _data?: { message?: string } } };
+    userNameMessage.value = e?.data?.message || e?.response?._data?.message || "ユーザーネームの変更に失敗しました。";
     userNameError.value = true;
   } finally {
     userNameLoading.value = false;
@@ -316,9 +355,10 @@ async function onSubmitUserName() {
 
 // --- 送信：パスワード ---
 async function onSubmitPassword() {
-  if (!isPasswordFormValid.value || passwordForm.newPassword !== passwordForm.newPasswordConfirm) return;
+  if (!isPasswordFormValid.value) return;
   passwordMessage.value = null;
   passwordError.value = false;
+  Object.assign(passwordFieldErrors, { current_password: "", password: "", password_confirmation: "" });
   passwordLoading.value = true;
   try {
     const xsrf = await ensureXsrfCookie();
@@ -338,15 +378,16 @@ async function onSubmitPassword() {
     passwordForm.currentPassword = "";
     passwordForm.newPassword = "";
     passwordForm.newPasswordConfirm = "";
-  } catch (err: any) {
-    passwordMessage.value =
-      err?.data?.message ||
-      err?.data?.errors?.current_password?.[0] ||
-      err?.data?.errors?.password?.[0] ||
-      err?.response?._data?.message ||
-      err?.response?._data?.errors?.current_password?.[0] ||
-      err?.response?._data?.errors?.password?.[0] ||
-      "パスワードの変更に失敗しました。";
+  } catch (err: unknown) {
+    const fe = pickFieldErrors(err);
+    if (Object.keys(fe).length) {
+      if (fe.current_password) passwordFieldErrors.current_password = fe.current_password;
+      if (fe.password) passwordFieldErrors.password = fe.password;
+      if (fe.password_confirmation) passwordFieldErrors.password_confirmation = fe.password_confirmation;
+      return;
+    }
+    const e = err as { data?: { message?: string }; response?: { _data?: { message?: string } } };
+    passwordMessage.value = e?.data?.message || e?.response?._data?.message || "パスワードの変更に失敗しました。";
     passwordError.value = true;
   } finally {
     passwordLoading.value = false;

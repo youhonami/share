@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\UpdatePasswordRequest;
+use App\Http\Requests\Auth\UpdateUserNameRequest;
+use App\Http\Requests\Auth\WithdrawRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -57,12 +60,9 @@ class AuthController extends Controller
     /**
      * Handle account withdrawal.
      */
-    public function withdraw(Request $request)
+    public function withdraw(WithdrawRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+        $credentials = $request->validated();
 
         $user = User::where('email', $credentials['email'])->first();
 
@@ -91,11 +91,9 @@ class AuthController extends Controller
     /**
      * Update the authenticated user's name.
      */
-    public function updateUser(Request $request)
+    public function updateUser(UpdateUserNameRequest $request)
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
         $user->name = $validated['name'];
@@ -109,12 +107,9 @@ class AuthController extends Controller
     /**
      * Update the authenticated user's password.
      */
-    public function updatePassword(Request $request)
+    public function updatePassword(UpdatePasswordRequest $request)
     {
-        $validated = $request->validate([
-            'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
-        ]);
+        $validated = $request->validated();
 
         $user = $request->user();
 
