@@ -30,8 +30,7 @@ Twitter 風 SNS アプリ
 
 - 可読性の向上／コメントアウトの見直し
 - 不要ファイル、ディレクトリの削除
-- readmeの追記(環境構築／テーブル設計／er図)
-- er図／テーブル設計書(作成とreadmeに追加)
+- readmeの追記(環境構築)
 
 ## 使用技術(実行環境)
 
@@ -50,9 +49,13 @@ Twitter 風 SNS アプリ
   - ページ: `app/pages/login.vue` / `app/pages/register.vue`
   - `ofetch`（`$fetch`）を用いて Laravel API を呼び出し、Sanctum の `/sanctum/csrf-cookie` を経由して CSRF 対策を実施
 
-## テーブル設計
+## テーブル設計・ER 図
 
-## ER 図
+DB のテーブル定義・関連・Mermaid による ER 図は次のファイルにまとめています。
+
+- **[docs/table-design.md](./docs/table-design.md)**
+
+GitHub 上では同ファイル内の Mermaid ブロックが図として表示されます。ローカルでは [Mermaid Live Editor](https://mermaid.live/) にコードを貼り付けて確認できます。
 
 ## 環境構築
 
