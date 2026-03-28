@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-full flex flex-1 min-w-0">
+  <div class="flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row">
     <Sidebar @share="handleShare" @logout="handleLogout" />
 
-    <main class="flex-1 min-w-0 flex flex-col overflow-y-auto">
+    <main class="flex-1 min-w-0 min-h-0 flex flex-col overflow-y-auto">
       <h1
-        class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600"
+        class="hidden lg:block text-white text-xl font-semibold py-4 px-4 lg:px-6 border-b border-gray-600"
       >
         マイ投稿
       </h1>
 
-      <div v-if="loading" class="px-6 py-4 text-sm text-gray-400">
+      <div v-if="loading" class="px-4 lg:px-6 py-4 text-sm text-gray-400">
         読み込み中...
       </div>
-      <div v-else-if="filteredPosts.length === 0" class="px-6 py-4 text-sm text-gray-400">
+      <div v-else-if="filteredPosts.length === 0" class="px-4 lg:px-6 py-4 text-sm text-gray-400">
         あなたの投稿はまだありません。
       </div>
       <div v-else class="flex flex-col divide-y divide-gray-600">

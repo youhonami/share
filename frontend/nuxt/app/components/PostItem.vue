@@ -1,5 +1,5 @@
 <template>
-  <article class="py-4 px-6 flex flex-col gap-2 border-b border-gray-600">
+  <article class="py-4 px-4 lg:px-6 flex flex-col gap-2 border-b border-gray-600">
   <div class="flex flex-col gap-2">
     <div class="flex items-center gap-2">
       <span class="text-white font-medium text-sm">{{ userName }}</span>

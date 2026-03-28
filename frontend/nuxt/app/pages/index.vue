@@ -1,10 +1,12 @@
 <template>
-  <div class="min-h-full flex flex-1 min-w-0">
+  <div class="flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row">
     <Sidebar @share="handleShare" @logout="handleLogout" />
 
     <!-- メイン（タイムライン） -->
-    <main class="flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <h1 class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600">
+    <main class="flex-1 min-w-0 min-h-0 flex flex-col overflow-y-auto">
+      <h1
+        class="hidden lg:block text-white text-xl font-semibold py-4 px-4 lg:px-6 border-b border-gray-600"
+      >
         ホーム
       </h1>
 

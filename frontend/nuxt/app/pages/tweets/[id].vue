@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-full flex flex-1 min-w-0">
+  <div class="flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row">
     <Sidebar @share="handleShare" @logout="handleLogout" />
 
-    <main class="flex-1 min-w-0 flex flex-col">
+    <main class="flex-1 min-w-0 min-h-0 flex flex-col overflow-y-auto lg:overflow-visible">
       <h1
-        class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600"
+        class="hidden lg:block text-white text-xl font-semibold py-4 px-4 lg:px-6 border-b border-gray-600"
       >
         コメント
       </h1>
@@ -23,11 +23,11 @@
           @delete="handleDeleteTweet"
           @toggle-like="handleToggleLikePost"
         />
-        <p v-else class="text-gray-400 text-sm px-6 py-4">読み込み中...</p>
+        <p v-else class="text-gray-400 text-sm px-4 lg:px-6 py-4">読み込み中...</p>
       </div>
 
       <!-- コメント一覧 -->
-      <div class="py-4 px-6 flex flex-col">
+      <div class="py-4 px-4 lg:px-6 flex flex-col">
         <h2 class="text-white text-sm font-medium mb-3 text-center">コメント</h2>
 
         <!-- コメントリスト（ここだけスクロール・約10件分の高さ） -->

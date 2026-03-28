@@ -1,18 +1,22 @@
 <template>
-  <div class="min-h-full flex flex-1 min-w-0">
+  <div class="flex flex-1 min-w-0 min-h-0 flex-col lg:flex-row">
     <Sidebar @share="handleShare" @logout="handleLogout" />
 
-    <main class="flex-1 min-w-0 flex flex-col overflow-y-auto">
-      <!-- ページタイトル -->
-      <h1 class="text-white text-xl font-semibold py-4 px-6 border-b border-gray-600">ユーザー設定</h1>
+    <main class="flex-1 min-w-0 min-h-0 flex flex-col overflow-y-auto">
+      <!-- ページタイトル（モバイルは Sidebar トップバーに表示） -->
+      <h1
+        class="hidden lg:block text-white text-xl font-semibold py-4 px-4 lg:px-6 border-b border-gray-600"
+      >
+        ユーザー設定
+      </h1>
 
       <!-- タブ（URLクエリ tab と同期） -->
-      <nav class="flex gap-0 border-b border-gray-600 px-6" aria-label="設定タブ">
+      <nav class="flex gap-0 border-b border-gray-600 px-4 lg:px-6 overflow-x-auto" aria-label="設定タブ">
         <button
           v-for="t in tabs"
           :key="t.id"
           type="button"
-          class="py-3 px-4 text-sm font-medium border-b-2 transition-colors -mb-px"
+          class="shrink-0 py-3 px-4 text-sm font-medium border-b-2 transition-colors -mb-px"
           :class="activeTab === t.id ? 'text-violet-400 border-violet-400' : 'text-gray-400 border-transparent hover:text-gray-300'"
           @click="activeTab = t.id"
         >
@@ -20,7 +24,7 @@
         </button>
       </nav>
 
-      <div class="p-6 flex flex-col gap-10 max-w-xl">
+      <div class="p-4 lg:p-6 flex flex-col gap-10 max-w-xl">
         <!-- ========== アカウント（名前・パスワード） ========== -->
         <template v-if="activeTab === 'account'">
           <section class="flex flex-col gap-4">
