@@ -29,9 +29,9 @@ Twitter 風 SNS アプリ
 
 ## 使用技術(実行環境)
 
-- Laravel 8.83.29 (PHP 8.5.3)
-- Nuxt 4.3.1 (Vue 3.5.28)
-- Node.js 24.4.1
+- Laravel 8 系（`composer.json` / `composer.lock` 参照。Docker の PHP は `docker/php/Dockerfile` のベースイメージに準拠：**php:8.2-fpm**）
+- Nuxt 4.3.1（Vue 3.5.28）
+- Node.js（例: 24.x 前後。`frontend/nuxt/package.json` の動作確認に利用）
 - MySQL 8.0.26
 - Nginx 1.21.1
 - Docker 28.2.2
@@ -40,7 +40,7 @@ Twitter 風 SNS アプリ
 
 - バックエンド: Laravel 8 + Laravel Sanctum（セッション / Cookie ベース SPA 認証）
   - `api/login` / `api/register` / `api/logout` / `api/user` などの API で実装
-- フロントエンド: Nuxt 3（Composition API）
+- フロントエンド: Nuxt 4（Composition API）
   - ページ: `app/pages/login.vue` / `app/pages/register.vue`
   - `ofetch`（`$fetch`）を用いて Laravel API を呼び出し、Sanctum の `/sanctum/csrf-cookie` を経由して CSRF 対策を実施
 
@@ -54,7 +54,103 @@ GitHub 上では同ファイル内の Mermaid ブロックが図として表示�
 
 ## 環境構築
 
+**Docker ビルド**
+
+1. https://github.com/youhonami/share.git
+
+- ターミナルで git clone git@github.com:youhonami/share.git を実行
+  - リモートリポジトリを作成
+  - ターミナルで git remote set-url origin 新規リポジトリの紐付け先リンク　を実行
+  - ターミナルで git remote -v を実行。変更を確認。
+  - ローカルリポジトリの変更を新しいリモートリポジトリに反映
+
+  ```
+  git status
+  git add .
+  git commit -m "例：リモートリポジトリの変更"
+  git push origin main
+  ```
+
+2. DockerDesktop アプリを立ち上げる
+3. `docker-compose up -d --build`
+
+> Mac（Apple Silicon）などで `no matching manifest for linux/arm64/v8` が出る場合は、`docker-compose.yml` の `mysql` サービスに `platform` を追加してください。
+
+```yaml
+mysql:
+  platform: linux/amd64
+  image: mysql:8.0.26
+  environment:
+    # ... 以下既存のまま
+```
+
+**Laravel 環境構築**
+
+Laravel のプロジェクトルートは **`backend/src`** です（Docker 内では `/var/www/src`。Nginx の `root` もこの `public` を向いています）。
+
+1. `docker-compose exec php bash`
+2. アプリディレクトリへ移動: `cd src`
+3. `composer install`  
+   （失敗する場合はネットワークや PHP 拡張を確認。`composer.json` に `laravel/sail` は dev 依存として含まれています）
+4. `backend/src/.env.example` を `backend/src/.env` にコピー（または同等の内容で `.env` を新規作成）  
+   > リポジトリ付属の `.env.example` は `DB_HOST=127.0.0.1` など **ローカル直実行向け**の値です。**Docker で起動する場合**は次のとおり DB を書き換えてください（`docker-compose.yml` の `mysql` サービスと一致）。
+5. `.env` で少なくとも以下を環境に合わせて設定
+
+```
+APP_URL=http://localhost
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=laravel_db
+DB_USERNAME=laravel_user
+DB_PASSWORD=laravel_pass
+
+MAIL_FROM_ADDRESS=認証メールの送信元となるメールアドレスを入力してください
+```
+
+6. アプリケーションキーの作成
+
+```bash
+php artisan key:generate
+```
+
+7. マイグレーションの実行
+
+```bash
+php artisan migrate
+```
+
+8. シーディングの実行
+
+```bash
+php artisan db:seed
+```
+
+9. ストレージのシンボリックリンクを作成
+
+```bash
+php artisan storage:link
+```
+
+（上記 `php artisan` はすべてコンテナ内の **`/var/www/src`** で実行してください。）
+
+**Nuxt（フロントエンド）**
+
+API はデフォルトで Nginx 経由の **`http://localhost`**（ポート 80）を想定しています。CORS は `backend/src/config/cors.php` で `http://localhost:3000` が許可されています。
+
+1. `cd frontend/nuxt`
+2. `npm install`
+3. 必要に応じて `.env` で API のベース URL を指定（未設定時は `nuxt.config.ts` のデフォルト `http://localhost`）
+
+```
+NUXT_PUBLIC_API_BASE=http://localhost
+```
+
+4. 開発サーバー起動: `npm run dev`（通常 `http://localhost:3000`）
+
 ## URL
 
-- 開発環境:http://localhost:3000/login
-- phpMyAdmin:http://localhost:8080/
+- フロント（開発）: http://localhost:3000/login
+- API（Nginx 経由）: http://localhost （バックエンド `public`）
+- phpMyAdmin: http://localhost:8080/
