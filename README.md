@@ -92,21 +92,17 @@ Laravel のプロジェクトルートは **`backend/src`** です（Docker 内�
 2. アプリディレクトリへ移動: `cd src`
 3. `composer install`  
    （失敗する場合はネットワークや PHP 拡張を確認。`composer.json` に `laravel/sail` は dev 依存として含まれています）
-4. `backend/src/.env.example` を `backend/src/.env` にコピー（または同等の内容で `.env` を新規作成）  
+4. `backend/src/.env.example` を `backend/src/.env` にコピー（または同等の内容で `.env` を新規作成）
    > リポジトリ付属の `.env.example` は `DB_HOST=127.0.0.1` など **ローカル直実行向け**の値です。**Docker で起動する場合**は次のとおり DB を書き換えてください（`docker-compose.yml` の `mysql` サービスと一致）。
-5. `.env` で少なくとも以下を環境に合わせて設定
+5. `.env` で以下を環境に合わせて設定
 
 ```
-APP_URL=http://localhost
-
 DB_CONNECTION=mysql
 DB_HOST=mysql
 DB_PORT=3306
 DB_DATABASE=laravel_db
 DB_USERNAME=laravel_user
 DB_PASSWORD=laravel_pass
-
-MAIL_FROM_ADDRESS=認証メールの送信元となるメールアドレスを入力してください
 ```
 
 6. アプリケーションキーの作成
